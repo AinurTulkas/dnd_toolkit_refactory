@@ -1,0 +1,17 @@
+{
+  "name": "D&D Toolkit - Master",
+  "short_name": "D&D Toolkit",
+  "description": "Herramienta para Master y Jugadores de D&D",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#8b0000",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3069/3069150.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
