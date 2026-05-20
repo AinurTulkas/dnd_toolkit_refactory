@@ -12,13 +12,17 @@
         header { background-color: var(--dnd-red); color: white; padding: 1~em; text-align: center; }
         .container { padding: 15px; max-width: 800px; margin: auto; }
         .card { background-color: var(--card-bg); border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid #dcd1b3; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { background-color: var(--dnd-red); color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-family: inherit; }
-        input { padding: 8px; border-radius: 5px; border: 1px solid #ccc; width: 100%; box-sizeng: border-box; margin-bottom: 10px; }
+        button { background-color: var(--dnd-red); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-family: inherit; margin: 5px; }
+        .btn-small { padding: 4px 8px; font-size: 0.8rem; background: #666; }
         nav { position: fixed; bottom: 0; width: 100%; background: #2c1e1a; display: flex; justify-content: space-around; padding: 10px 0; z_index: 100; }
-        nav button { background: transparent; font-size: 0.8rem; border: none; }
+        nav button { background: transparent; font-size: 0.8rem; border: none; margin: 0; }
         .tab-content { display: none; }
-        .monster-item { display: flex; justify-content: space-between; align-items: center; }
-        #difficulty-indicator { font-weight: bold; font-size: 1.2rem; color: var(--dnd-red); margin: 10px 0; }
+        .dice-container { text-align: center; padding: 20px; }
+        #last-dice-result { font-size: 5rem; font-weight: bold; color: var(--dnd-red); margin: 20px 0; min-height: 100px; }
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+            100% { transform: rotate(360deg) scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -28,46 +32,57 @@
         <!-- Pantalla de Inicio -->
         <div id="tab-home" class="tab-content">
             <div class="card" style="text-align: center;">
-                <h2>Bienvenido, Master</h2>
-                <p>Gestiona niveles y batallas equilibradas.</p>
-                <div style="font-size: 3rem;">âš”</div>
+                <h2>Taberna del Master</h2>
+                <p>Herramientas para aventureros y narradores.</p>
+                <div style="font-size: 3rem;">ðŸ„’·»ÿÿð¯</div>
             </div>
         </div>
 
-        <!-- Pantalla de Grupo (Leveling) --->
+        <!-- Pantalla de Grupo -->
         <div id="tab-party" class="tab-content">
-            <h2>Gestiona de Grupo</h2>
+            <h2>Gestiona de HÃ©roes</h2>
             <div id="party-list"></div>
-            <button onclick="party.push({name: 'Nuevo Aventurero', level: 1, xp: 0}); renderParty();">Agregar Jugador</button>
+            <div class="card">
+                <h3>Crear Nuevo Personaje</h3>
+                <input type="text" id="new-player-name" placeholder="Nombre del hÃ©roe..." style="width:100%; padding:8px; margin-bottom:10px;">
+                <select id="new-player-class" style="width:100%; padding:8px; margin-bottom:10px;">
+                    <option value="Guerrero">Guerrero</option>
+                    <option value="Mago">Mago</option>
+                    <option value="PÃ­caro">PÃ­caro</option>
+                    <option value="ClÃ©rigo">Clerigo</option>
+                    <option value="Explorador">Explorador</option>
+                </select>
+                <button onclick="addPlayer(document.getElementById('new-player-name').value, document.getElementById('new-player-class').value)">Crear con Equipo Inicial</button>
+            </div>
         </div>
 
-        <!-- Pantalla de Encuentros (Battle Matching) --->
-        <div id="tab-encounter" class="tab-content">
-            <h2>Constructor de Batallas</h2>
-            <div id="difficulty-indicator">Dificultad: Agrega monstruos</div>
-            
-            <div class="card">
-                <h3>Monstruos en Combate</h3>
-                <div id="encounter-list"></div>
-            </div>
-
-            <div class="card">
-                <h3>Buscar en el Bestiario (SRD)</h3>
-                <input type="text" placeholder="Buscar monstruo..." oninput="renderMonsterSearch(this.value)">
-                <div id="monster-search-results"></div>
+        <!-- Pantalla de Dados -->
+        <div id="tab-dice" class="tab-content">
+            <div dice-container">
+                <h2>Lanzador de Dados</h2>
+                <div id="last-dice-result">--</div>
+                <div class="card">
+                    <button onclick="rollDice(4)">d4</button>
+                    <button onclick="rollDice(6)">d6</button>
+                    <button onclick="rollDice(8)">d8</button>
+                    <button onclick="rollDice(10)">d10</button>
+                    <button onclick="rollDice(12)">d12</button>
+                    <button onclick="rollDice(20)">d20</button>
+                    <button onclick="rollDice(100)">d100</button>
+                </div>
+                <h3>Historial</h3>
+                <ul id="dice-history" style="list-style:none; padding:0;"></ul>
             </div>
         </div>
     </div>
 
     <nav>
-        <button onclick="showTab('tab-home')">ï»ÿï»ÿï»ÿ<br>Inicio</button>
-        <button onclick="showTab('tab-party')">ï»¿ï»¿<br>Grupo</button>
+        <button onclick="showTab('tab-home')">ðŸ„¡<br>Inicio</button>
+        <button onclick="showTab('tab-party')">ðŸ“»ï»¿ï»¿<br>HÃ©roes</button>
+        <button onclick="showTab('tab-dice')">ðŸŽ³<br>Dados</button>
         <button onclick="showTab('tab-encounter')">âšZbr>Combate</button>
     </nav>
 
     <script src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-    </script>
 </body>
 </html>
