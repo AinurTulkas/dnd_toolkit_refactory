@@ -3,156 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&D Toolkit - Modular</title>
+    <title>D&D0 Toolkit - Grimoire</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#8b0000">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --dnd-red: #8b0000; --parchment: #f4ecd8; --ink: #2c1e1a; --card-bg: #fff9e5; }
-        body { font-family: 'Georgia', serif; background-color: var(--parchment); color: var(--ink); margin: 0; padding-bottom: 80px; }
-        header { background-color: var(--dnd-red); color: white; padding: 1rem; text-align: center; }
-        .container { padding: 15px; max-width: 800px; margin: auto; }
-        .card { background-color: var(--card-bg); border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid #dcd1b3; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        button { background-color: var(--dnd-red); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-family: inherit; margin: 2px; }
-        input, select, textarea { padding: 8px; border-radius: 5px; border: 1px solid #ccc; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-family: inherit; }
-        nav { position: fixed; bottom: 0; width: 100%; background: #2c1e1a; display: flex; justify-content: space-around; padding: 10px 0; z-index: 100; }
-        nav button { background: transparent; font-size: 0.7rem; border: none; color: #ccc; padding: 2px; }
-        .tab-content { display: none; }
-        #chat-messages { height: 350px; overflow-y: auto; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 5px; margin-bottom: 10px; }
-        .btn-export { background-color: #2c1e1a; color: gold; font-weight: bold; border: 1px solid gold; }
-        .btn-small { padding: 4px 8px; font-size: 0.7rem; }
+        :root {
+            --bg-dark: #0f0f0f;
+            --card-dark: #1a1a1a;
+            --dnd-red: #b30000;
+            --gold: #d4af37;
+            --text-main: #e0e0e0;
+            --text-dim: #a0a0a0;
+            --accent-glow: rgba(179, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--gold);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+
+        h1, h2, h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--gold);
+            margin: 0;
+            letter-spacing: 2px;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .card {
+            background: var(--card-dark);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--dnd-red) 0%, #7a0000 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px var(--accent-glow);
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            filter: brightness(1.2);
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        /* Nav Moderna */
+        nav {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            background: rgba(26, 26, 26, 0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 10px;
+            border-radius: 25px;
+            border: 1px solid var(--gold);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z_index: 1000;
+        }
+
+        nav button {
+            background: transparent;
+            box-shadow: none;
+            width: auto;
+            margin: 0;
+            padding: 5px;
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            display: flex;
+            fex-direction: column;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+        }
+
+        nav button.active {
+            color: var(--gold);
+        }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        input, select {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            box-sizeng: border-box;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
-    <header><h1>D&D Toolkit</h1></header>
+    <header>
+        <h1>D&D0 Grimoire</h1>
+    </header>
 
     <div class="container">
-        <!-- Inicio / Configuración -->
-        <div id="tab-home" class="tab-content">
-            <div class="card" style="text-align: center;">
+        <!-- Dashboard -->
+        <div id="tab-home" class="tab-content" style="display: block;">
+            <div class="card" style="text-align:center;">
                 <h2>Panel del Master</h2>
-                <p>Configura los módulos activos para esta campaña.</p>
+                <p style="color: var(--text-dim);">Activa los artefactos para tu sesión.</p>
             </div>
-            
-            <div id="config-panel"></div>
-            
-            <div class="card" style="text-align: center; margin-top:20px;">
-                <h3>Seguridad de la Taberna</h3>
-                <p>Si eres menor, ingresa el correo de tu tutor para transcripciones.</p>
-                <input type="email" id="parent-email" placeholder="Correo del padre...">
-            </div>
+            <div id="config-panel" class="card"></div>
         </div>
 
-        <!-- Tablero de Combate -->
         <div id="tab-combat" class="tab-content">
             <div class="card">
-                <h4>1. Elegir Combatientes</h4>
-                <div id="combat-player-select"></div>
-                <p><small>Añadir enemigos:</small></p>
-                <input type="text" placeholder="Buscar enemigo..." oninput="renderMonsterSearch(this.value)">
-                <div id="combat-monster-search"></div>
+                <h2>Tablero de Guerra</h2>
+                <p>Combate táctico activo.</p>
             </div>
-            <button onclick="startCombat()" style="width:100%; background:green; margin-bottom:15px;">¡INICIAR BATALLA!</button>
-            <div id="combat-list"></div>
-            <button onclick="nextTurn()" style="width:100%; background:gold; color:black; font-weight:bold; height:50px;">Siguiente Turno ⏭️</button>
         </div>
 
-        <!-- Loot / Reparto -->
         <div id="tab-loot" class="tab-content">
-            <div class="card" style="text-align: center;">
-                <h2>Generador y Reparto Grupal</h2>
-                <button onclick="generateDetailedLoot(1)">Generar Loot (CR 1)</button>
-                <button onclick="generateDetailedLoot(5)">Generar Loot (CR 5)</button>
-                <div id="loot-display" style="margin-top: 20px; text-align: left;"></div>
-            </div>
-        </div>
-
-        <!-- Supervivencia / Viaje -->
-        <div id="tab-survival" class="tab-content">
             <div class="card">
-                <h3>Viaje y Campamento</h3>
-                <button onclick="survivalAction()">🎯 Cazar / Recolectar</button>
-                <p id="survival-result" style="font-size:0.9rem; color:brown; margin-top:10px;"></p>
-                <hr>
-                <button onclick="shortRest()" style="background:#555;">💤 Descanso Corto</button>
-                <button onclick="longRest()" style="background:green;">🛌 Descanso Largo</button>
-                <button onclick="advanceDay()" style="background:blue; margin-top:10px;">☀️ Avanzar Día</button>
+                <h2>Cámara de Tesoros</h2>
+                <button onclick="generateDetailedLoot(1)">Generar Oro</button>
+                <div id="loot-display"></div>
             </div>
         </div>
 
-        <!-- Bazar -->
-        <div id="tab-shop" class="tab-content">
-            <div class="card">
-                <h3>Bazar del Pueblo</h3>
-                <div id="shop-items"></div>
-            </div>
-        </div>
-
-        <!-- Comunidad -->
-        <div id="tab-bulletin" class="tab-content">
-            <h2>📢 Tablón de Anuncios</h2>
-            <div id="bulletin-list"></div>
-        </div>
-
-        <!-- Chat -->
-        <div id="tab-chat" class="tab-content">
-            <button onclick="showTab('tab-bulletin')">← Volver</button>
-            <h3 id="chat-title">Chat de Mesa</h3>
-            <div id="chat-messages"></div>
-            <div style="display:flex; gap:5px;">
-                <input type="text" id="chat-input" placeholder="Mensaje...">
-                <button onclick="sendMessage()">Enviar</button>
-            </div>
-        </div>
-
-        <!-- Héroes -->
         <div id="tab-party" class="tab-content">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2>Héroes</h2>
-                <button onclick="showTab('tab-create')">+ Nuevo</button>
-            </div>
-            <div id="party-list"></div>
-        </div>
-
-        <!-- Creación -->
-        <div id="tab-create" class="tab-content">
             <div class="card">
-                <h3>Nuevo Héroe</h3>
-                <input type="text" id="p-name" placeholder="Nombre...">
-                <select id="p-class">
-                    <option value="Guerrero">Guerrero</option>
-                    <option value="Mago">Mago</option>
-                    <option value="Pícaro">Pícaro</option>
-                </select>
-                <div style="display:flex; gap:10px;">
-                    <input type="number" id="p-height" placeholder="cm">
-                    <input type="number" id="p-weight" placeholder="kg">
-                </div>
-                <textarea id="p-appearance" placeholder="Apariencia..."></textarea>
-                <button onclick="addDetailedPlayer(); showTab('tab-party')">Crear Héroe</button>
-            </div>
-        </div>
-
-        <!-- Detalles Héroe -->
-        <div id="tab-details" class="tab-content">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                <button onclick="showTab('tab-party')">←</button>
-                <button id="pdf-btn" class="btn-export">📥 PDF</button>
-            </div>
-            <div id="player-details-content"></div>
-        </div>
-
-        <!-- Mazmorra -->
-        <div id="tab-dungeon" class="tab-content">
-            <div class="card">
-                <h3>Generador de Mazmorras</h3>
-                <button onclick="generateRoom()">Explorar Habitación</button>
-                <div id="dungeon-display" style="margin-top:20px;"></div>
+                <h2>Gremio de Héroes</h2>
+                <div id="party-list"></div>
+                <button onclick="showTab('tab-create')">+ Reclutar</button>
             </div>
         </div>
     </div>
 
-    <nav id="main-nav"></nav>
+    <nav id="main-nav">
+        <button onclick="showTab('tab-home')" class="active">﻿<br>Inicio</button>
+        <button onclick="showTab('tab-combat')">⚔<br>Guerra</button>
+        <button onclick="showTab('tab-loot')">💳<br>Oro</button>
+        <button onclick="showTab('tab-party')">📻<br>Gremio</button>
+    </nav>
 
     <script src="app.js"></script>
 </body>
