@@ -3,243 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D&D Grimoire Pro</title>
+    <title>D&D0 Grimoire Pro</title>
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg-dark: #0a0a0a;
-            --card-dark: #121212;
-            --dnd-red: #8b0000;
-            --gold: #c5a059;
-            --gold-bright: #f1d592;
-            --text-main: #e0e0e0;
-            --text-dim: #888;
+        :root { --bg-dark: #0a0a0a; --card-dark: #121212; --dnd-red: #8b0000; --gold: #c5a059; --text-main: #e0e0e0; --text-dim: #888; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-main ; margin: 0; padding-bottom: 100px; }
+        header { background: #111; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gold); }
+        h1 { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.2rem; margin: 0; letter-spacing: 2px; }
+        
+        /* Botón Dados en Header */
+        .dice-btn-header { color: var(--gold); font-size: 1.5rem; cursor: pointer; transition: 0.3s; }
+        .dice-btn-header:hover { transform: scale(1.1); }
+
+        /* Overlay Dados */
+        #dice-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z_index: 2000; flex-direction: column; align-items: center; justify-content: center;
         }
+        .dice-tray { background: #1a1a1a; width: 90%; max-width: 400px; border-radius: 20px; border: 1px solid var(--gold); padding: 20px; text-align: center; }
+        .dice-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
+        .dice-box { background: #222; border: 1px solid #333; padding: 10px; border-radius: 10px; cursor: pointer; color: var(--gold); font-weight: bold; }
+        .dice-box:active { background: var(--dnd-red); }
+        #dice-result-area { min-height: 100px; display: flex; flex-direction: column; justify-content: center; margin-bottom: 20px; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            padding-bottom: 110px;
-        }
-
-        header {
-            background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid var(--gold);
-        }
-
-        h1 {
-            font-family: 'Cinzel', serif;
-            color: var(--gold);
-            font-size: 1.6rem;
-            letter-spacing: 4px;
-            margin: 0;
-        }
-
-        .container {
-            padding: 20px;
-            max-width: 500px;
-            margin: auto;
-        }
-
-        .card {
-            background: var(--card-dark);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid #1f1f1f;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-        }
-
-        h2 {
-            font-family: 'Cinzel', serif;
-            color: var(--gold);
-            font-size: 1.3rem;
-            margin-top: 0;
-        }
-
-        /* Mini Toggles */
-        .module-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #1f1f1f;
-        }
-
-        .module-row span {
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 30px;
-            height: 16px;
-        }
-
-        .switch input { opacity: 0; width: 0; height: 0; }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #222;
-            transition: .4s;
-            border-radius: 20px;
-            border: 1px solid #333;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 10px; width: 10px;
-            left: 2px; bottom: 2px;
-            background-color: #555;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider { background-color: var(--dnd-red); border-color: var(--gold); }
-        input:checked + .slider:before { transform: translateX(14px); background-color: var(--gold-bright); }
-
-        /* Modern Bottom Nav - Extra Large Icons */
-        nav {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 450px;
-            background: rgba(15, 15, 15, 0.96);
-            backdrop-filter: blur(20px);
-            display: flex;
-            justify-content: space-around;
-            padding: 15px 10px;
-            border-radius: 30px;
-            border: 1px solid rgba(197, 160, 89, 0.3);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.9);
-            z-index: 1000;
-        }
-
-        nav button {
-            background: transparent;
-            border: none;
-            color: var(--text-dim);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 60px;
-        }
-
-        nav button i {
-            font-size: 1.8rem; /* 40% Larger */
-        }
-
-        nav button span {
-            font-size: 0.55rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-        }
-
-        nav button.active {
-            color: var(--gold-bright);
-            transform: translateY(-5px);
-        }
-
-        nav button.active i {
-            filter: drop-shadow(0 0 8px var(--gold));
-        }
-
-        .tab-content { display: none; animation: slideUp 0.4s ease-out; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--dnd-red) 0%, #600000 100%);
-            color: white;
-            border: 1px solid var(--gold);
-            padding: 14px;
-            border-radius: 12px;
-            font-family: 'Cinzel';
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
-            margin-top: 10px;
-        }
-
-        .hero-card {
-            background: linear-gradient(145deg, #1a1a1a, #121212);
-            margin-bottom: 12px;
-            padding: 15px;
-            border-radius: 12px;
-            border-left: 4px solid var(--gold);
-        }
+        .container { padding: 20px; max-width: 500px; margin: auto; }
+        .card { background: var(--card-dark); border-radius: 16px; padding: 20px; margin-bottom: 15px; border: 1px solid #1f1f1f; }
+        .tab-content { display: none; }
+        nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 12px; border-radius: 30px; border: 1px solid rgba(197, 160, 89, 0.3); z_index: 1000; }
+        nav button { background: transparent; border: none; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+        nav button i { font-size: 1.8rem; }
+        nav button span { font-size: 0.55rem; text-transform: uppercase; }
+        nav button.active { color: var(--gold); }
+        .module-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1f1f1f; }
+        .switch { position: relative; width: 34px; height: 18px; }
+        .switch input { opacity: 0; }
+        .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #333; border-radius: 20px; transition: 0.4s; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.4s; }
+        input:checked + .slider { background: var(--dnd-red); }
+        input:checked + .slider:before { transform: translatgX(16px); }
     </style>
 </head>
 <body>
+    <!-- Overlay de Dados -->
+    <div id="dice-overlay">
+        <div class="dice-tray">
+            <div style="text-align:right;"><i class="fa-solid fa-circle-xmark" onclick="toggleDiceTray()" style="cursor:pointer;"></i></div>
+            <div id="dice-result-area">--</div>
+            <div id="dice-selected-list" style="color:var(--text-dim); margin-bottom:10px;"></div>
+            <div class="dice-grid">
+                <div class="dice-box" onclick="addDiceToTray(4)">d4</div>
+                <div class="dice-box" onclick="addDiceToTray(6)">d6</div>
+                <div class="dice-box" onclick="addDiceToTray(8)">d8</div>
+                <div class="dice-box" onclick="addDiceToTray(10)">d10</div>
+                <div class="dice-box" onclick="addDiceToTray(12)">d12</div>
+                <div class="dice-box" onclick="addDiceToTray(20)">d20</div>
+                <div class="dice-box" onclick="addDiceToTray(100)">d100</div>
+                <div class="dice-box" onclick="clearTray()" style="color:red;">CLR</div>
+            </div>
+            <button onclick="rollAllDice()" style="background:var(--gold); color:black; font-family:'Cinzel'; font-weight:bold; width:100%; padding:15px; border-radius:10px; border:none;">LANZAR DADOS</button>
+        </div>
+    </div>
+
     <header>
-        <h1><i class="fa-solid fa-dragon-gold" style="color: var(--gold);"></i> GRIMOIRE PRO</h1>
+        <h1><i class="fa-solid fa-dragon"></i> GRIMOIRE-/h1>
+        <i class="fa-solid fa-dice-d20 dice-btn-header" onclick="toggleDiceTray()"></i>
     </header>
 
     <div class="container">
-        <div id="tab-home" class="tab-content" style="display: block;">
+        <div id="tab-home" class="tab-content" style="display:block;">
             <div class="card" style="text-align:center;">
-                <h2>Panel de Control</h2>
-                <p style="font-size: 0.85rem; color: var(--text-dim);">Configuración de la campaña.</p>
-            </div>
-            <div id="config-panel" class="card"></div>
-        </div>
-
-        <div id="tab-combat" class="tab-content">
-            <div class="card">
-                <h2>Tablero de Guerra</h2>
-                <p>Módulo de combate táctico activo.</p>
+                <h2>Panel del Master</h2>
+                <div id="config-panel"></div>
             </div>
         </div>
-
-        <div id="tab-loot" class="tab-content">
-            <div class="card">
-                <h2>Cámara de Oro</h2>
-                <button class="btn-primary" onclick="generateDetailedLoot(1)">Generar Botín</button>
-                <div id="loot-display" style="margin-top:20px;"></div>
-            </div>
-        </div>
-
+        <div id="tab-combat" class="tab-content"><div class="card"><h2>Guerra</h2></div></div>
+        <div id="tab-loot" class="tab-content"><div class="card"><h2>Tesoros</h2></div></div>
         <div id="tab-party" class="tab-content">
             <div class="card">
-                <h2>Gremio de Héroes</h2>
+                <h2>H��roes</h2>
                 <div id="party-list"></div>
-                <button class="btn-primary" onclick="showTab('tab-create')">Reclutar Héroe</button>
+                <input type="text" id="p-name" placeholder="Nombre hå�oe...">
+                <select id="p-class"><option value="Guerrero">Guerrero</option><option value="Mago">Mago</option></select>
+                <button onclick="addDetailedPlayer()" style="background:var(--dnd-red); color:white; border:none; padding:10px; width:100%; border-radius:10px; font-family:'Cinzel'; margin-top:10px;">Reclutar</button>
             </div>
-        </div>
-
-        <div id="tab-create" class="tab-content">
-            <div class="card">
-                <h2>Nuevo Aventurero</h2>
-                <input type="text" id="p-name" placeholder="Nombre del héroe...">
-                <select id="p-class">
-                    <option value="Guerrero">Guerrero</option>
-                    <option value="Mago">Mago</option>
-                    <option value="Pícaro">Pícaro</option>
-                </select>
-                <button class="btn-primary" onclick="addDetailedPlayer(); showTab('tab-party')">Confirmar</button>
-            </div>
-        </div>
-
-        <div id="tab-details" class="tab-content">
-            <button class="btn-primary" style="background:#222;" onclick="showTab('tab-party')">← Volver</button>
-            <div id="player-details-content"></div>
         </div>
     </div>
 
