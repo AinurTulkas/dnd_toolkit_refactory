@@ -1,60 +1,28 @@
-// --- ESTADO Y CONFIGURACIÓN ---
+// --- CONFIGURACIÓN Y ESTADO ---
 let party = JSON.parse(localStorage.getItem('dnd_party')) || [];
-let bulletinBoard = JSON.parse(localStorage.getItem('dnd_bulletin')) || [
-    { id: 1, host: "Master Aris", title: "La Mina Perdida", level: "1-3", players: 2, maxPlayers: 5, description: "Busco guerreros valientes para exploración clásica." },
-];
-let chats = JSON.parse(localStorage.getItem('dnd_chats')) || {};
 let appConfig = JSON.parse(localStorage.getItem('dnd_config')) || {
-    survival: true, trade: true, community: true, dungeon: true, combat: true, loot: true
+    combat: true, loot: true, survival: true, community: true
 };
-let allSrdMonsters = [];
-let combatants = [];
-let currentTurnIndex = 0;
-let lastGeneratedLoot = null;
-let selectedPlayerIndex = null;
 
-// --- SEGURIDAD Y CHAT ---
-function filterMessage(text) {
-    const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9.-]+\.(com|net|org|edu|gov|io|sh))/gi;
-    return text.replace(urlRegex, "[ENLACE BLOQUEADO]");
+function saveState() {
+    localStorage.setItem('dnd_party', JSON.stringify(party));
+    localStorage.setItem('dnd_config', JSON.stringify(appConfig));
 }
 
-function sendMessage() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text) return;
-    const sender = party[0] ? party[0].name : "Aventurero";
-    const tableId = "global"; // Simplificado
-    if (!chats[tableId]) chats[tableId] = [];
-    chats[tableId].push({ sender, text: filterMessage(text), time: new Date().toLocaleTimeString() });
-    input.value = '';
-    saveState();
-    renderMessages();
-}
-
-function renderMessages() {
-    const list = document.getElementById('chat-messages');
-    const msgs = chats["global"] || [];
-    list.innerHTML = msgs.map(m => `<div><strong>${m.sender}</strong>: ${m.text}</div>`).join('');
-}
-
-// --- MODULARIDAD ---
-function toggleModule(m) {
-    appConfig[m] = !appConfig[m];
-    saveState();
-    renderNavigation();
-}
-
+// --- RENDERING DINÁMICO ---
 function renderNavigation() {
     const nav = document.getElementById('main-nav');
     nav.innerHTML = `
-        <button onclick="showTab('tab-home')">🏠<br>Inicio</button>
-        ${appConfig.combat ? `<button onclick="showTab('tab-combat')">⚔️<br>Tablero</button>` : ''}
-        ${appConfig.loot ? `<button onclick="showTab('tab-loot')">💰<br>Loot</button>` : ''}
-        ${appConfig.survival ? `<button onclick="showTab('tab-survival')">🏕️<br>Viaje</button>` : ''}
-        ${appConfig.trade ? `<button onclick="showTab('tab-shop')">🛒<br>Bazar</button>` : ''}
-        ${appConfig.community ? `<button onclick="showTab('tab-bulletin')">📢<br>Comunidad</button>` : ''}
-        <button onclick="showTab('tab-party')">👥<br>Héroes</button>
+        <button onclick="showTab('tab-home')" id="btn-home" class="active">
+            <i class="fa-solid fa-house-chimney"></i>
+            <span>Inicio</span>
+        </button>
+        ${appConfig.combat ? `<button onclick="showTab('tab-combat')" id="btn-combat"><i class="fa-solid fa-shield-halved"></i><span>Guerra</span></button>` : ''}
+        ${appConfig.loot ? `<button onclick="showTab('tab-loot')" id="btn-loot"><i class="fa-solid fa-gem"></i><span>Oro</span></button>` : ''}
+        <button onclick="showTab('tab-party')" id="btn-party">
+            <i class="fa-solid fa-users-rays"></i>
+            <span>Gremio</span>
+        </button>
     `;
     renderConfigToggles();
 }
@@ -62,43 +30,96 @@ function renderNavigation() {
 function renderConfigToggles() {
     const container = document.getElementById('config-panel');
     if(!container) return;
+    
     const modules = [
-        { id: 'combat', label: 'Combate', icon: '⚔️' },
-        { id: 'loot', label: 'Loot', icon: '💰' },
-        { id: 'survival', label: 'Viaje', icon: '🏕️' },
-        { id: 'trade', label: 'Bazar', icon: '🛒' },
-        { id: 'community', label: 'Comunidad', icon: '📢' },
-        { id: 'dungeon', label: 'Mazmorra', icon: '🏰' }
+        { id: 'combat', label: 'Tablero de Guerra', icon: 'fa-shield-halved' },
+        { id: 'loot', label: 'Cámara de Tesoros', icon: 'fa-gem' },
+        { id: 'survival', label: 'Supervivencia', icon: 'fa-campground' },
+        { id: 'community', label: 'Tablón Gremial', icon: 'fa-bullhorn' }
     ];
+
     container.innerHTML = modules.map(m => `
-        <div style="display:flex; justify-content:space-between; margin-bottom:5px; padding:10px; background:white; border-radius:8px;">
-            <span>${m.icon} ${m.label}</span>
-            <input type="checkbox" ${appConfig[m.id] ? 'checked' : ''} onchange="toggleModule('${m.id}')">
+        <div class="module-row">
+            <div><i class="fa-solid ${m.icon}"></i> <span>${m.label}</span></div>
+            <label class="switch">
+                <input type="checkbox" ${appConfig[m.id] ? 'checked' : ''} onchange="toggleModule('${m.id}')">
+                <span class="slider"></span>
+            </label>
         </div>
     `).join('');
 }
 
-// --- PERSISTENCIA ---
-function saveState() {
-    localStorage.setItem('dnd_party', JSON.stringify(party));
-    localStorage.setItem('dnd_config', JSON.stringify(appConfig));
-    localStorage.setItem('dnd_chats', JSON.stringify(chats));
+function toggleModule(m) {
+    appConfig[m] = !appConfig[m];
+    saveState();
+    renderNavigation();
+}
+
+// --- GESTIÓN DE HÉROES ---
+function addDetailedPlayer() {
+    const name = document.getElementById('p-name').value;
+    const cls = document.getElementById('p-class').value;
+    party.push({
+        name: name || "Héroe",
+        className: cls,
+        level: 1,
+        currency: { gp: 10 },
+        inventory: []
+    });
+    saveState();
+    renderParty();
+}
+
+function renderParty() {
+    const list = document.getElementById('party-list');
+    list.innerHTML = party.map((p, i) => `
+        <div class="hero-card" onclick="showPlayerDetails(${i})">
+            <strong>${p.name}</strong> - Niv. ${p.level} ${p.className}
+        </div>
+    `).join('') || '<p>No hay héroes reclutados.</p>';
+}
+
+function showPlayerDetails(i) {
+    const p = party[i];
+    document.getElementById('player-details-content').innerHTML = `
+        <div class="card">
+            <h3>${p.name}</h3>
+            <p>Clase: ${p.className}</p>
+            <p>Oro: ${p.currency.gp} gp</p>
+        </div>
+    `;
+    showTab('tab-details');
+}
+
+// --- LOOT ---
+function generateDetailedLoot(cr) {
+    const gp = Math.floor(Math.random() * 50 * cr) + 10;
+    document.getElementById('loot-display').innerHTML = `
+        <div class="hero-card">
+            <h4>Botín Hallado</h4>
+            <p>Oro: ${gp} gp</p>
+        </div>
+    `;
 }
 
 // --- NAVEGACIÓN ---
 function showTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
     document.getElementById(tabId).style.display = 'block';
-    if(tabId === 'tab-party') renderParty();
-    if(tabId === 'tab-chat') renderMessages();
+    
+    document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+    const btn = document.querySelector(`nav button[onclick*="${tabId}"]`);
+    if(btn) btn.classList.add('active');
 }
 
-// --- INICIO ---
 document.addEventListener('DOMContentLoaded', () => {
     renderNavigation();
+    renderParty();
     showTab('tab-home');
 });
 
 window.showTab = showTab;
 window.toggleModule = toggleModule;
-window.sendMessage = sendMessage;
+window.addDetailedPlayer = addDetailedPlayer;
+window.showPlayerDetails = showPlayerDetails;
+window.generateDetailedLoot = generateDetailedLoot;
