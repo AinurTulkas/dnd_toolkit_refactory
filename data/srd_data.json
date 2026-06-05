@@ -58,5 +58,16 @@
     {"name": "Antorcha", "category": "Equipo", "cost": "1 pc"},
     {"name": "Raciones (1 día)", "category": "Equipo", "cost": "5 pp"},
     {"name": "Odre", "category": "Equipo", "cost": "1 po"}
+  ],
+  "trinkets": [
+    {"name": "Ojo de cristal", "category": "Baratija", "cost": "0 po"},
+    {"name": "Papel quemado con letras extrañas", "category": "Baratija", "cost": "0 po"},
+    {"name": "Dedo de un enemigo", "category": "Baratija", "cost": "0 po"},
+    {"name": "Trozo de tela de un estandarte", "category": "Baratija", "cost": "0 po"},
+    {"name": "Huevo de cristal pequeño", "category": "Baratija", "cost": "0 po"},
+    {"name": "Muela de oro", "category": "Baratija", "cost": "0 po"},
+    {"name": "Diario con páginas en blanco", "category": "Baratija", "cost": "0 po"},
+    {"name": "Caja de música rota", "category": "Baratija", "cost": "0 po"},
+    {"name": "Llave antigua de plata", "category": "Baratija", "cost": "0 po"}
   ]
 }
