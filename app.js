@@ -235,6 +235,7 @@ function createCharacter() {
     const name = document.getElementById('char-name').value;
     const race = document.getElementById('char-race').value;
     const charClass = document.getElementById('char-class').value;
+    const strength = parseInt(document.getElementById('char-str').value) || 10;
     const gender = document.getElementById('char-gender').value;
     if (!name) return alert("¡Nombre requerido!");
     const classData = srdData.classes.find(c => c.name === charClass);
@@ -247,7 +248,7 @@ function createCharacter() {
     }
     const newChar = {
         id: Date.now(), name, race, charClass, gender, level: 1, 
-        hp: classData.hit_die, strength: classData.default_str, hasMagicBag: false,
+        hp: classData.hit_die, strength: strength, hasMagicBag: false,
         wallet: {cp:0, sp:0, gp:0, pp:0, ep:0}, inventory: inventory
     };
     party.push(newChar);
@@ -286,7 +287,7 @@ function renderParty() {
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div class="char-info">
                     <h3>${c.name}</h3>
-                    <p>${c.gender} | ${c.race} ${c.charClass} | ${c.hp} PV</p>
+                    <p>${c.gender} | ${c.race} ${c.charClass} | STR: ${c.strength} | ${c.hp} PV</p>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center;">
                     <div style="text-align:center;">
