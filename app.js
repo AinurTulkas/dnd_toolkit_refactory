@@ -12,6 +12,13 @@ function saveState() {
     localStorage.setItem('dnd_config', JSON.stringify(appConfig));
 }
 
+// --- UTILIDADES ---
+const calculateMod = (val) => {
+    const mod = Math.floor((val - 10) / 2);
+    return mod >= 0 ? `+${mod}` : `${mod}`;
+};
+
+// --- CARGA DE DATOS ---
 async function loadSRDData() {
     try {
         const response = await fetch('data/srd_data.json');
@@ -33,6 +40,7 @@ function populateSelects() {
     if(genderSelect) genderSelect.innerHTML = srdData.genders.map(g => `<option value="${g}">${g}</option>`).join('');
 }
 
+// --- GENERADOR DE BOTÍN ---
 function generateLoot() {
     const cr = parseInt(document.getElementById('loot-cr').value) || 1;
     const container = document.getElementById('loot-result');
@@ -121,6 +129,7 @@ function createGlobalAssignArea() {
     document.body.appendChild(div); return div;
 }
 
+// --- GESTIÓN DE INVENTARIO ---
 function toggleInventory(charId) {
     const div = document.getElementById(`inv-${charId}`);
     div.style.display = div.style.display === 'block' ? 'none' : 'block';
@@ -140,7 +149,7 @@ function renderInventory(charId) {
         <div style="margin-bottom:15px; padding:10px; background:#000; border-radius:8px; border:1px solid ${isHeavilyEncumbered ? '#ff4444' : (isEncumbered ? '#ffa500' : '#333')};">
             <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
                 <span style="color:var(--gold)">PESO: ${currentWeight.toFixed(1)} / ${capacity} lb</span>
-                <span style="font-size:0.6rem; color:#666;">(STR: ${char.stats.str})</span>
+                <span style="font-size:0.6rem; color:#666;">(STR: ${char.stats.str} ${calculateMod(char.stats.str)})</span>
             </div>
             <div style="height:4px; background:#222; margin-top:8px; border-radius:2px;"><div style="height:100%; width:${Math.min(100, (currentWeight/capacity)*100)}%; background:${isHeavilyEncumbered ? '#ff4444' : (isEncumbered ? '#ffa500' : '#44bb44')};"></div></div>
         </div>
@@ -191,6 +200,7 @@ function tradeItem(fromId, toId, itemIdx) {
     }
 }
 
+// --- GESTIÓN DE PERSONAJES ---
 function createCharacter() {
     const name = document.getElementById('char-name').value;
     const race = document.getElementById('char-race').value;
@@ -219,7 +229,8 @@ function createCharacter() {
 
 function toggleMagicBag(charId) {
     const char = party.find(c => c.id == charId);
-    if(char) { char.hasMagicBag = !char.hasMagicBag; saveState(); renderParty(); if(document.getElementById(`inv-${charId}`).style.display === 'block') renderInventory(charId); }
+    if(char) { char.hasMagicBag = !char.hasMagicBag; saveState(); renderParty(); if(document.getElementById(`inv-${charId}`).style.display === 'block') renderInventory(charId);
+    }
 }
 
 function deleteCharacter(id) { party = party.filter(c => c.id != id); saveState(); renderParty(); }
@@ -229,12 +240,24 @@ function renderParty() {
     if (!container) return; if (party.length === 0) { container.innerHTML = '<p style="color: #666;">Gremio vacío...</p>'; return; }
     container.innerHTML = party.map(c => {
         if(!c.stats) c.stats = {str:10, dex:10, con:10, int:10, wis:10, cha:10};
+        
+        const statsHtml = `
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 10px 0; background: #000; padding: 10px; border-radius: 8px; border: 1px solid #222;">
+                <div style="font-size:0.6rem; color:#888;">STR: <b style="color:var(--gold)">${c.stats.str}</b> <span style="color:#fff;">(${calculateMod(c.stats.str)})</span></div>
+                <div style="font-size:0.6rem; color:#888;">DEX: <b style="color:var(--gold)">${c.stats.dex}</b> <span style="color:#fff;">(${calculateMod(c.stats.dex)})</span></div>
+                <div style="font-size:0.6rem; color:#888;">CON: <b style="color:var(--gold)">${c.stats.con}</b> <span style="color:#fff;">(${calculateMod(c.stats.con)})</span></div>
+                <div style="font-size:0.6rem; color:#888;">INT: <b style="color:var(--gold)">${c.stats.int}</b> <span style="color:#fff;">(${calculateMod(c.stats.int)})</span></div>
+                <div style="font-size:0.6rem; color:#888;">WIS: <b style="color:var(--gold)">${c.stats.wis}</b> <span style="color:#fff;">(${calculateMod(c.stats.wis)})</span></div>
+                <div style="font-size:0.6rem; color:#888;">CHA: <b style="color:var(--gold)">${c.stats.cha}</b> <span style="color:#fff;">(${calculateMod(c.stats.cha)})</span></div>
+            </div>
+        `;
+
         return `
         <div class="char-card" style="flex-direction:column; align-items:stretch;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div class="char-info">
                     <h3>${c.name}</h3>
-                    <p>${c.gender} | ${c.race} ${c.charClass} | HP: ${c.hp}</p>
+                    <p>${c.gender} | ${c.race} ${c.charClass} | PV: ${c.hp}</p>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center;">
                     <div style="text-align:center;"><label style="font-size:0.5rem; color:var(--gold); display:block;">BAG</label><label class="switch" style="transform: scale(0.6);"><input type="checkbox" ${c.hasMagicBag ? 'checked' : ''} onchange="toggleMagicBag(${c.id})"><span class="slider"></span></label></div>
@@ -242,17 +265,20 @@ function renderParty() {
                     <button class="btn-delete" onclick="deleteCharacter(${c.id})"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             </div>
-            <div id="inv-${c.id}" style="display:none; margin-top:15px; border-top:1px solid #222; padding-top:10px;"><div id="inv-list-${c.id}"></div></div>
+            ${statsHtml}
+            <div id="inv-${c.id}" style="display:none; margin-top:5px; border-top:1px solid #222; padding-top:10px;"><div id="inv-list-${c.id}"></div></div>
         </div>
     `}).join('');
 }
 
+// --- OTROS ---
 function toggleDiceTray() { const t = document.getElementById('dice-overlay'); t.style.display = t.style.display === 'flex' ? 'none' : 'flex'; }
 function addDiceToTray(s) { diceTray.push(s); renderDiceTray(); }
 function clearTray() { diceTray = []; document.getElementById('dice-result-area').innerHTML = '--'; document.getElementById('dice-selected-list').innerHTML = ''; }
 function renderDiceTray() { const l = document.getElementById('dice-selected-list'); if (diceTray.length === 0) { l.innerHTML = 'Toca dados...'; return; } const counts = {}; diceTray.forEach(s => counts[s] = (counts[s] || 0) + 1); l.innerHTML = Object.entries(counts).map(([s, c]) => `${c}d${s}`).join(' + '); }
 function rollAllDice() { if (diceTray.length === 0) return; let t = 0, br = []; diceTray.forEach(s => { const r = Math.floor(Math.random() * s) + 1; t += r; br.push(r); }); document.getElementById('dice-result-area').innerHTML = `<div style="font-size:3.5rem; color:#f1d592;">${t}</div><div style="color:#666; font-size:0.9rem;">[${br.join(' + ')}]</div>`; }
-function renderNavigation() { const n = document.getElementById('main-nav'); if(!n) return; n.innerHTML = `<button onclick="showTab('tab-home')" class="active"><i class="fa-solid fa-house-chimney"></i><span>Inicio</span></button>${appConfig.combat ? `<button onclick="showTab('tab-combat')"><i class="fa-solid fa-shield-halved"></i><span>Guerra</span></button>` : ''}${appConfig.loot ? `<button onclick="showTab('tab-loot')"><i class="fa-solid fa-gem"></i><span>Oro</span></button>` : ''}<button onclick="showTab('tab-party')"><i class="fa-solid fa-users-rays"></i><span>Gremio</span></button>`; renderConfigToggles(); }
+function renderNavigation() { const n = document.getElementById('main-nav'); if(!n) return;
+    n.innerHTML = `<button onclick="showTab('tab-home')" class="active"><i class="fa-solid fa-house-chimney"></i><span>Inicio</span></button>${appConfig.combat ? `<button onclick="showTab('tab-combat')"><i class="fa-solid fa-shield-halved"></i><span>Guerra</span></button>` : ''}${appConfig.loot ? `<button onclick="showTab('tab-loot')"><i class="fa-solid fa-gem"></i><span>Oro</span></button>` : ''}<button onclick="showTab('tab-party')"><i class="fa-solid fa-users-rays"></i><span>Gremio</span></button>`; renderConfigToggles(); }
 function renderConfigToggles() { const c = document.getElementById('config-panel'); if(!c) return; const m = [{id:'combat',label:'Tablero Guerra',icon:'fa-shield-halved'},{id:'loot',label:'Cámara Tesoros',icon:'fa-gem'},{id:'survival',label:'Supervivencia',icon:'fa-campground'},{id:'community',label:'Tablón Gremial',icon:'fa-bullhorn'}]; c.innerHTML = m.map(x => `<div class="module-row"><div class="module-label"><i class="fa-solid ${x.icon}"></i> <span>${x.label}</span></div><label class="switch"><input type="checkbox" ${appConfig[x.id] ? 'checked' : ''} onchange="toggleModule('${x.id}')"><span class="slider"></span></label></div>`).join(''); }
 function toggleModule(m) { appConfig[m] = !appConfig[m]; saveState(); renderNavigation(); }
 function showTab(t) { document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none'); document.getElementById(t).style.display = 'block'; document.querySelectorAll('nav button').forEach(b => b.classList.remove('active')); const btn = document.querySelector(`nav button[onclick*="${t}"]`); if(btn) btn.classList.add('active'); if(t === 'tab-party') renderParty(); if(t === 'tab-combat') renderBestiary(); if(t === 'tab-loot') renderLootTable(); }
