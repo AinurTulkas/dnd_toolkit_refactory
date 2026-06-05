@@ -17,8 +17,8 @@ async function loadSRDData() {
         const response = await fetch('data/srd_data.json');
         srdData = await response.json();
         populateSelects();
-        renderLootTable(); // Renderizar tablas si existen
-        renderBestiary();   // Renderizar bestiario
+        renderLootTable(); 
+        renderBestiary();   
     } catch (e) {
         console.error("Error cargando base de datos SRD:", e);
     }
@@ -32,6 +32,59 @@ function populateSelects() {
     if(classSelect) classSelect.innerHTML = srdData.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
     if(raceSelect) raceSelect.innerHTML = srdData.races.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
     if(genderSelect) genderSelect.innerHTML = srdData.genders.map(g => `<option value="${g}">${g}</option>`).join('');
+}
+
+// --- GENERADOR DE BOTÍN MATEMÁTICO ---
+function generateLoot() {
+    const cr = parseInt(document.getElementById('loot-cr').value) || 1;
+    const container = document.getElementById('loot-result');
+    
+    // 1. Cantidad Base de Monedas (ajustada por CR)
+    const baseCoins = (Math.floor(Math.random() * 100) + 50) * (cr + 1);
+    
+    // 2. Distribución Estricta (Preferencias de Malthus)
+    const distribution = {
+        cp: Math.floor(baseCoins * 0.90),
+        sp: Math.floor(baseCoins * 0.07),
+        gp: Math.floor(baseCoins * 0.025),
+        pp: Math.floor(baseCoins * 0.003),
+        ep: Math.floor(baseCoins * 0.002)
+    };
+
+    // 3. Regla del 12% de Monedas Falsas
+    const isFake = Math.random() < 0.12;
+    const fakeMsg = isFake ? `<div style="color: #ff4444; font-size: 0.7rem; margin-top: 5px; font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> ADVERTENCIA: Se detectan trazas de metales viles (Posible moneda falsa)</div>` : '';
+
+    // 4. Selección de Objetos Aleatorios
+    const allItems = [...srdData.weapons, ...srdData.armor, ...srdData.items];
+    const lootItems = [];
+    const itemChance = 0.3 + (cr * 0.05); // Más CR, más chance de items
+    
+    for(let i=0; i < 3; i++) {
+        if(Math.random() < itemChance) {
+            const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
+            lootItems.push(randomItem);
+        }
+    }
+
+    // Renderizado
+    container.innerHTML = `
+        <div class="card" style="background: #1a1a1a; border: 1px dashed var(--gold); padding: 20px;">
+            <h3 style="font-family: 'Cinzel'; color: var(--gold); margin-top: 0;">Tesoro Encontrado</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 0.8rem; font-weight: bold;">
+                <div style="color: #cd7f32;">${distribution.cp} cp</div>
+                <div style="color: #c0c0c0;">${distribution.sp} sp</div>
+                <div style="color: #ffd700;">${distribution.gp} gp</div>
+                <div style="color: #e5e4e2;">${distribution.pp} pp</div>
+                <div style="color: #50c878;">${distribution.ep} ep</div>
+            </div>
+            ${fakeMsg}
+            <div style="margin-top: 15px; text-align: left;">
+                ${lootItems.length > 0 ? `<p style="font-size: 0.7rem; color: var(--gold); margin-bottom: 5px; text-transform: uppercase;">Objetos Especiales:</p>` : ''}
+                ${lootItems.map(item => `<div style="font-size: 0.85rem; color: #fff; border-bottom: 1px solid #333; padding: 5px 0;">• ${item.name} (${item.cost})</div>`).join('')}
+            </div>
+        </div>
+    `;
 }
 
 // --- BESTIARIO ---
@@ -52,7 +105,6 @@ function renderBestiary() {
 function renderLootTable() {
     const container = document.getElementById('loot-items-list');
     if (!container) return;
-    
     const allItems = [...srdData.weapons, ...srdData.armor, ...srdData.items];
     container.innerHTML = allItems.map(i => `
         <div class="char-card" style="border-left-color: #c5a059;">
@@ -70,16 +122,13 @@ function createCharacter() {
     const race = document.getElementById('char-race').value;
     const charClass = document.getElementById('char-class').value;
     const gender = document.getElementById('char-gender').value;
-
     if (!name) { alert("¡El héroe necesita un nombre!"); return; }
-
     const newChar = {
         id: Date.now(),
         name, race, charClass, gender,
         level: 1,
         hp: srdData.classes.find(c => c.name === charClass).hit_die
     };
-
     party.push(newChar);
     saveState();
     renderParty();
@@ -205,3 +254,4 @@ window.clearTray = clearTray;
 window.rollAllDice = rollAllDice;
 window.createCharacter = createCharacter;
 window.deleteCharacter = deleteCharacter;
+window.generateLoot = generateLoot;

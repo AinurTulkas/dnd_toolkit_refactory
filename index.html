@@ -54,7 +54,16 @@
         <div id="tab-loot" class="tab-content">
             <div class="card">
                 <h2>Cámara de Tesoros</h2>
-                <p>Armas, Armaduras y Equipo</p>
+                <div class="form-group">
+                    <label>Nivel de Encuentro (CR)</label>
+                    <input type="number" id="loot-cr" value="1" min="0" max="20" style="text-align:center;">
+                </div>
+                <button onclick="generateLoot()" class="btn-primary" style="margin-bottom: 20px;">GENERAR BOTÍN</button>
+                
+                <div id="loot-result" style="margin-bottom: 30px;"></div>
+                
+                <hr style="border: 0; border-top: 1px solid #222; margin: 25px 0;">
+                <p>Catálogo de Equipo</p>
                 <div id="loot-items-list"></div>
             </div>
         </div>
