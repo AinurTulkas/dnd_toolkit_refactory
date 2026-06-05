@@ -15,48 +15,36 @@
             background: var(--bg-dark); z-index: 5000; display: flex; flex-direction: column;
             align-items: center; justify-content: center; padding: 20px; text-align: center;
         }
-        .lobby-content {
-            max-width: 500px;
-            width: 100%;
-        }
+        .lobby-content { max-width: 500px; width: 100%; }
         .campaign-item {
             background: #111; border: 1px solid var(--gold-muted); padding: 20px;
             margin-bottom: 15px; border-radius: 12px; cursor: pointer; transition: 0.3s;
         }
         .campaign-item:hover { border-color: var(--gold); background: #1a1a1a; }
         
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 15px 0;
-        }
-        .stat-input-group {
-            text-align: center;
-        }
-        .stat-input-group label {
-            font-size: 0.7rem;
-            display: block;
-            margin-bottom: 5px;
-            color: var(--gold);
-        }
-        .stat-input-group input {
-            text-align: center;
-            padding: 8px;
-            font-size: 1rem;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .stat-input-group { text-align: center; }
+        .stat-input-group label { font-size: 0.7rem; display: block; margin-bottom: 5px; color: var(--gold); }
+        .stat-input-group input { text-align: center; padding: 8px; font-size: 1rem; }
 
-        /* Role Badge */
         #role-indicator {
             position: fixed; top: 85px; left: 20px; font-size: 0.7rem;
             padding: 4px 10px; border-radius: 20px; background: #222;
             border: 1px solid var(--gold-muted); color: var(--gold); z-index: 900;
         }
+
+        /* Notice Board (Tablón) styles */
+        .notice-card {
+            background: #0d0d0d; border: 1px solid #222; border-top: 3px solid var(--gold);
+            padding: 20px; margin-bottom: 20px; border-radius: 4px; position: relative;
+            text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .notice-card h3 { font-family: 'Cinzel'; color: var(--gold); margin: 0 0 10px 0; font-size: 1.3rem; }
+        .notice-card p { font-size: 1rem; color: #ccc; line-height: 1.4; margin-bottom: 15px; }
+        .notice-reward { font-family: 'Cinzel'; color: var(--gold-bright); font-size: 0.9rem; font-weight: bold; border-top: 1px solid #222; padding-top: 10px; }
     </style>
 </head>
 <body>
-    <!-- Lobby de Campañas -->
     <div id="lobby-overlay">
         <div class="lobby-content">
             <h1 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem; margin-bottom: 30px;">Grimorio Pro</h1>
@@ -65,7 +53,6 @@
                 <div id="campaign-list"></div>
                 <button onclick="showCreateCampaign()" class="btn-primary" style="margin-top: 20px;">+ NUEVA CAMPAÑA</button>
             </div>
-            
             <div id="create-campaign-form" style="display: none; margin-top: 30px;" class="card">
                 <input type="text" id="new-campaign-name" placeholder="Nombre de la campaña...">
                 <button onclick="createCampaign()" class="btn-primary">CREAR</button>
@@ -74,7 +61,6 @@
         </div>
     </div>
 
-    <!-- UI Principal -->
     <div id="role-indicator">MODO: <span id="current-role-text">Cargando...</span></div>
 
     <div id="dice-overlay">
@@ -102,7 +88,6 @@
     </header>
 
     <div class="container">
-        <!-- Dashboard (Config) -->
         <div id="tab-home" class="tab-content">
             <div class="card">
                 <h2 id="campaign-title-display">Campaña</h2>
@@ -115,19 +100,16 @@
                 </div>
                 <button onclick="exitToLobby()" style="background: #222; color: #fff; border: 1px solid #444; padding: 10px; width: 100%; border-radius: 8px;">SALIR AL LOBBY</button>
             </div>
-            <div id="config-panel" class="module-card master-only"></div>
+            <div id="config-panel" class="module-card"></div>
         </div>
 
-        <!-- Bestiario (Master) -->
         <div id="tab-combat" class="tab-content">
             <div class="card">
                 <h2>Tablero de Guerra</h2>
-                <p>Bestiario SRD</p>
                 <div id="monster-list"></div>
             </div>
         </div>
 
-        <!-- Loot (Master) -->
         <div id="tab-loot" class="tab-content">
             <div class="card">
                 <h2>Cámara de Tesoros</h2>
@@ -142,14 +124,30 @@
                 <div id="loot-items-list"></div>
             </div>
         </div>
+
+        <!-- Tablón de Anuncios (Comunidad) -->
+        <div id="tab-community" class="tab-content">
+            <div class="card">
+                <h2 style="font-family:'Cinzel';">Tablón Gremial</h2>
+                <p style="font-style:italic;">Misiones y avisos del pueblo.</p>
+                
+                <!-- Master Interface to add Notices -->
+                <div class="master-only" id="add-notice-section" style="background:#111; padding:20px; border-radius:10px; border:1px solid #222; margin:20px 0;">
+                    <h3>Publicar Misión</h3>
+                    <input type="text" id="notice-title" placeholder="Título de la misión...">
+                    <textarea id="notice-content" placeholder="Descripción (Cuidado con el lenguaje...)" style="width:100%; height:100px; background:#1a1a1a; border:1px solid var(--gold-muted); color:#fff; padding:10px; border-radius:8px; margin:10px 0; font-family:inherit;"></textarea>
+                    <input type="text" id="notice-reward" placeholder="Recompensa (ej. 50 po)">
+                    <button onclick="publishNotice()" class="btn-primary">CLAVAR EN EL TABLÓN</button>
+                </div>
+
+                <div id="notices-container"></div>
+            </div>
+        </div>
         
-        <!-- Gremio (Ambos) -->
         <div id="tab-party" class="tab-content">
             <div class="card">
                 <h2 id="party-title">El Gremio</h2>
                 <div id="character-list"></div>
-                
-                <!-- Solo Master puede crear aventureros (o Aventurero el suyo propio) -->
                 <div id="create-char-section">
                     <hr style="border: 0; border-top: 1px solid #222; margin: 25px 0;">
                     <h3>Nuevo Héroe</h3>
