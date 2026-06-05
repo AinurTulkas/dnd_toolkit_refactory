@@ -1,17 +1,17 @@
 {
   "classes": [
-    {"name": "Bárbaro", "hit_die": 12, "primary_stat": "STR"},
-    {"name": "Bardo", "hit_die": 8, "primary_stat": "CHA"},
-    {"name": "Clérigo", "hit_die": 8, "primary_stat": "WIS"},
-    {"name": "Druida", "hit_die": 8, "primary_stat": "WIS"},
-    {"name": "Guerrero", "hit_die": 10, "primary_stat": "STR"},
-    {"name": "Monje", "hit_die": 8, "primary_stat": "DEX"},
-    {"name": "Paladín", "hit_die": 10, "primary_stat": "CHA"},
-    {"name": "Explorador", "hit_die": 10, "primary_stat": "DEX"},
-    {"name": "Pícaro", "hit_die": 8, "primary_stat": "DEX"},
-    {"name": "Hechicero", "hit_die": 6, "primary_stat": "CHA"},
-    {"name": "Brujo", "hit_die": 8, "primary_stat": "CHA"},
-    {"name": "Mago", "hit_die": 6, "primary_stat": "INT"}
+    {"name": "Bárbaro", "hit_die": 12, "primary_stat": "STR", "default_str": 16, "starting_items": ["Gran Hacha", "Daga", "Mochila", "Raciones (1 día)"]},
+    {"name": "Bardo", "hit_die": 8, "primary_stat": "CHA", "default_str": 10, "starting_items": ["Cuero", "Daga", "Mochila"]},
+    {"name": "Clérigo", "hit_die": 8, "primary_stat": "WIS", "default_str": 14, "starting_items": ["Cota de Malla", "Escudo", "Maza", "Mochila"]},
+    {"name": "Druida", "hit_die": 8, "primary_stat": "WIS", "default_str": 10, "starting_items": ["Cuero", "Escudo", "Cimitarra", "Mochila"]},
+    {"name": "Guerrero", "hit_die": 10, "primary_stat": "STR", "default_str": 15, "starting_items": ["Cota de Malla", "Espada Larga", "Escudo", "Arco Largo"]},
+    {"name": "Monje", "hit_die": 8, "primary_stat": "DEX", "default_str": 10, "starting_items": ["Espada Corta", "Daga", "Raciones (1 día)"]},
+    {"name": "Paladín", "hit_die": 10, "primary_stat": "CHA", "default_str": 15, "starting_items": ["Cota de Malla", "Escudo", "Espada Larga"]},
+    {"name": "Explorador", "hit_die": 10, "primary_stat": "DEX", "default_str": 12, "starting_items": ["Cuero", "Espada Corta", "Arco Largo", "Mochila"]},
+    {"name": "Pícaro", "hit_die": 8, "primary_stat": "DEX", "default_str": 10, "starting_items": ["Cuero", "Daga", "Espada Corta", "Arco Corto"]},
+    {"name": "Hechicero", "hit_die": 6, "primary_stat": "CHA", "default_str": 8, "starting_items": ["Daga", "Mochila", "Raciones (1 día)"]},
+    {"name": "Brujo", "hit_die": 8, "primary_stat": "CHA", "default_str": 10, "starting_items": ["Cuero", "Daga", "Arco Corto", "Mochila"]},
+    {"name": "Mago", "hit_die": 6, "primary_stat": "INT", "default_str": 8, "starting_items": ["Daga", "Mochila", "Raciones (1 día)", "Odre"]}
   ],
   "races": [
     {"name": "Enano", "speed": 25},
@@ -37,37 +37,39 @@
     {"name": "Dragón Rojo Joven", "type": "Dragón", "ac": 18, "hp": 178, "cr": "10"}
   ],
   "weapons": [
-    {"name": "Daga", "category": "Sencilla", "damage": "1d4 p", "cost": "2 po"},
-    {"name": "Espada Corta", "category": "Marcial", "damage": "1d6 p", "cost": "10 po"},
-    {"name": "Espada Larga", "category": "Marcial", "damage": "1d8 p", "cost": "15 po"},
-    {"name": "Hacha de Batalla", "category": "Marcial", "damage": "1d8 c", "cost": "10 po"},
-    {"name": "Arco Corto", "category": "Sencilla", "damage": "1d6 p", "cost": "25 po"},
-    {"name": "Arco Largo", "category": "Marcial", "damage": "1d8 p", "cost": "50 po"},
-    {"name": "Gran Hacha", "category": "Marcial", "damage": "1d12 c", "cost": "30 po"}
+    {"name": "Daga", "category": "Sencilla", "damage": "1d4 p", "cost": "2 po", "weight": 1},
+    {"name": "Maza", "category": "Sencilla", "damage": "1d6 c", "cost": "5 po", "weight": 4},
+    {"name": "Cimitarra", "category": "Marcial", "damage": "1d6 r", "cost": "25 po", "weight": 3},
+    {"name": "Espada Corta", "category": "Marcial", "damage": "1d6 p", "cost": "10 po", "weight": 2},
+    {"name": "Espada Larga", "category": "Marcial", "damage": "1d8 p", "cost": "15 po", "weight": 3},
+    {"name": "Hacha de Batalla", "category": "Marcial", "damage": "1d8 c", "cost": "10 po", "weight": 4},
+    {"name": "Arco Corto", "category": "Sencilla", "damage": "1d6 p", "cost": "25 po", "weight": 2},
+    {"name": "Arco Largo", "category": "Marcial", "damage": "1d8 p", "cost": "50 po", "weight": 2},
+    {"name": "Gran Hacha", "category": "Marcial", "damage": "1d12 c", "cost": "30 po", "weight": 7}
   ],
   "armor": [
-    {"name": "Cuero", "category": "Ligera", "ac": "11 + Des", "cost": "10 po"},
-    {"name": "Cuero Tachonado", "category": "Ligera", "ac": "12 + Des", "cost": "45 po"},
-    {"name": "Cota de Malla", "category": "Pesada", "ac": "16", "cost": "75 po"},
-    {"name": "Placas", "category": "Pesada", "ac": "18", "cost": "1500 po"},
-    {"name": "Escudo", "category": "Escudo", "ac": "+2", "cost": "10 po"}
+    {"name": "Cuero", "category": "Ligera", "ac": "11 + Des", "cost": "10 po", "weight": 10},
+    {"name": "Cuero Tachonado", "category": "Ligera", "ac": "12 + Des", "cost": "45 po", "weight": 13},
+    {"name": "Cota de Malla", "category": "Pesada", "ac": "16", "cost": "75 po", "weight": 55},
+    {"name": "Placas", "category": "Pesada", "ac": "18", "cost": "1500 po", "weight": 65},
+    {"name": "Escudo", "category": "Escudo", "ac": "+2", "cost": "10 po", "weight": 6}
   ],
   "items": [
-    {"name": "Mochila", "category": "Equipo", "cost": "2 po"},
-    {"name": "Cuerda de Cáñamo (50 pies)", "category": "Equipo", "cost": "1 po"},
-    {"name": "Antorcha", "category": "Equipo", "cost": "1 pc"},
-    {"name": "Raciones (1 día)", "category": "Equipo", "cost": "5 pp"},
-    {"name": "Odre", "category": "Equipo", "cost": "1 po"}
+    {"name": "Mochila", "category": "Equipo", "cost": "2 po", "weight": 5},
+    {"name": "Cuerda de Cáñamo (50 pies)", "category": "Equipo", "cost": "1 po", "weight": 10},
+    {"name": "Antorcha", "category": "Equipo", "cost": "1 pc", "weight": 1},
+    {"name": "Raciones (1 día)", "category": "Equipo", "cost": "5 pp", "weight": 2},
+    {"name": "Odre", "category": "Equipo", "cost": "1 po", "weight": 5}
   ],
   "trinkets": [
-    {"name": "Ojo de cristal", "category": "Baratija", "cost": "0 po"},
-    {"name": "Papel quemado con letras extrañas", "category": "Baratija", "cost": "0 po"},
-    {"name": "Dedo de un enemigo", "category": "Baratija", "cost": "0 po"},
-    {"name": "Trozo de tela de un estandarte", "category": "Baratija", "cost": "0 po"},
-    {"name": "Huevo de cristal pequeño", "category": "Baratija", "cost": "0 po"},
-    {"name": "Muela de oro", "category": "Baratija", "cost": "0 po"},
-    {"name": "Diario con páginas en blanco", "category": "Baratija", "cost": "0 po"},
-    {"name": "Caja de música rota", "category": "Baratija", "cost": "0 po"},
-    {"name": "Llave antigua de plata", "category": "Baratija", "cost": "0 po"}
+    {"name": "Ojo de cristal", "category": "Baratija", "cost": "0 po", "weight": 0.1},
+    {"name": "Papel quemado con letras extrañas", "category": "Baratija", "cost": "0 po", "weight": 0.1},
+    {"name": "Dedo de un enemigo", "category": "Baratija", "cost": "0 po", "weight": 0.1},
+    {"name": "Trozo de tela de un estandarte", "category": "Baratija", "cost": "0 po", "weight": 0.1},
+    {"name": "Huevo de cristal pequeño", "category": "Baratija", "cost": "0 po", "weight": 0.1},
+    {"name": "Muela de oro", "category": "Baratija", "cost": "0 po", "weight": 0.1},
+    {"name": "Diario con páginas en blanco", "category": "Baratija", "cost": "0 po", "weight": 0.1},
+    {"name": "Caja de música rota", "category": "Baratija", "cost": "0 po", "weight": 0.1},
+    {"name": "Llave antigua de plata", "category": "Baratija", "cost": "0 po", "weight": 0.1}
   ]
 }

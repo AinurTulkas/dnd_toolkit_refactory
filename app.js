@@ -95,7 +95,6 @@ function getCoinColor(type) {
     return colors[type] || '#fff';
 }
 
-// ASIGNACIÓN DE BOTÍN A PERSONAJE
 function assignCoins(type) {
     const amount = parseInt(document.getElementById(`split-${type}`).value);
     if(amount <= 0 || isNaN(amount)) return;
@@ -111,8 +110,6 @@ function confirmAssignCoins(type, amount, charId) {
         char.wallet[type] += amount;
         saveState();
         alert(`Entregadas ${amount} ${type} a ${char.name}.`);
-        
-        // Actualizar UI del loot
         const input = document.getElementById(`split-${type}`);
         const newMax = parseInt(input.max) - amount;
         input.max = newMax; input.value = newMax;
@@ -135,7 +132,6 @@ function confirmAssignItem(idx, charId) {
         char.inventory.push({...item});
         saveState();
         alert(`"${item.name}" añadido a la mochila de ${char.name}.`);
-        
         const row = document.getElementById(`assign-item-${idx}`).previousElementSibling;
         row.style.opacity = '0.3';
         row.querySelector('button').style.display = 'none';
@@ -151,7 +147,6 @@ function createGlobalAssignArea() {
     return div;
 }
 
-// --- GESTIÓN DE INVENTARIO (AVENTURERO) ---
 function toggleInventory(charId) {
     const div = document.getElementById(`inv-${charId}`);
     div.style.display = div.style.display === 'block' ? 'none' : 'block';
@@ -162,17 +157,32 @@ function renderInventory(charId) {
     const char = party.find(c => c.id == charId);
     const container = document.getElementById(`inv-list-${charId}`);
     if(!char || !container) return;
-
+    let currentWeight = 0;
+    char.inventory.forEach(i => currentWeight += (i.weight || 0));
+    const capacity = (char.strength * 15) + (char.hasMagicBag ? 500 : 0);
+    const isEncumbered = currentWeight > (char.strength * 5);
+    const isHeavilyEncumbered = currentWeight > capacity;
+    let weightHtml = `
+        <div style="margin-bottom:15px; padding:10px; background:#000; border-radius:8px; border:1px solid ${isHeavilyEncumbered ? '#ff4444' : (isEncumbered ? '#ffa500' : '#333')};">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+                <span style="color:var(--gold)">PESO CARGADO:</span>
+                <span style="color:${isHeavilyEncumbered ? '#ff4444' : '#fff'}">${currentWeight.toFixed(1)} / ${capacity} lb</span>
+            </div>
+            <div style="height:4px; background:#222; margin-top:8px; border-radius:2px;">
+                <div style="height:100%; width:${Math.min(100, (currentWeight/capacity)*100)}%; background:${isHeavilyEncumbered ? '#ff4444' : (isEncumbered ? '#ffa500' : '#44bb44')}; transition:0.3s;"></div>
+            </div>
+            ${isHeavilyEncumbered ? `<p style="color:#ff4444; font-size:0.6rem; margin:5px 0 0; font-weight:bold;">⚠️ ¡SOBRECARGADO! Movimiento reducido.</p>` : (isEncumbered ? `<p style="color:#ffa500; font-size:0.6rem; margin:5px 0 0;">Cargando demasiado...</p>` : '')}
+        </div>
+    `;
     let walletHtml = `<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; font-size:0.7rem;">`;
     Object.entries(char.wallet).forEach(([t, v]) => {
         walletHtml += `<div onclick="spendCoins('${charId}', '${t}')" style="background:#222; border:1px solid ${getCoinColor(t)}; padding:3px 6px; border-radius:4px; cursor:pointer;">${v} ${t}</div>`;
     });
     walletHtml += `</div>`;
-
     let itemsHtml = char.inventory.length === 0 ? '<p style="font-size:0.7rem; color:#666;">Mochila vacía...</p>' : char.inventory.map((item, idx) => `
         <div style="background:#111; padding:8px; border-radius:4px; margin-bottom:5px; font-size:0.75rem; border:1px solid #333;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span>• ${item.name}</span>
+                <span>• ${item.name} <span style="color:#666; font-size:0.6rem;">(${item.weight || 0} lb)</span></span>
                 <div style="display:flex; gap:5px;">
                     <button onclick="giveToNPC('${charId}', ${idx})" title="Gastar/NPC" style="background:transparent; border:none; color:#ff4444; cursor:pointer;"><i class="fa-solid fa-hand-holding-dollar"></i></button>
                     <button onclick="showTradeMenu('${charId}', ${idx})" title="Pasar a..." style="background:transparent; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-arrows-left-right"></i></button>
@@ -181,8 +191,7 @@ function renderInventory(charId) {
             <div id="trade-menu-${charId}-${idx}" style="display:none; margin-top:5px; border-top:1px solid #222; padding-top:5px;"></div>
         </div>
     `).join('');
-
-    container.innerHTML = walletHtml + itemsHtml;
+    container.innerHTML = weightHtml + walletHtml + itemsHtml;
 }
 
 function spendCoins(charId, type) {
@@ -196,7 +205,7 @@ function spendCoins(charId, type) {
 
 function giveToNPC(charId, itemIdx) {
     const char = party.find(c => c.id == charId);
-    if(confirm(`¿Confirmas que entregas "${char.inventory[itemIdx].name}" a un NPC o lo gastas?`)) {
+    if(confirm(`¿Confirmas que entregas "${char.inventory[itemIdx].name}" a un NPC?`)) {
         char.inventory.splice(itemIdx, 1);
         saveState();
         renderInventory(charId);
@@ -207,9 +216,7 @@ function showTradeMenu(charId, itemIdx) {
     const menu = document.getElementById(`trade-menu-${charId}-${itemIdx}`);
     menu.style.display = 'block';
     const others = party.filter(c => c.id != charId);
-    menu.innerHTML = others.map(c => `
-        <button onclick="tradeItem('${charId}', '${c.id}', ${itemIdx})" style="width:100%; background:#333; border:none; color:#fff; font-size:0.65rem; padding:4px; margin-bottom:2px; cursor:pointer;">Dar a ${c.name}</button>
-    `).join('') + `<button onclick="this.parentElement.style.display='none'" style="width:100%; background:transparent; border:none; color:#666; font-size:0.6rem;">CERRAR</button>`;
+    menu.innerHTML = others.map(c => `<button onclick="tradeItem('${charId}', '${c.id}', ${itemIdx})" style="width:100%; background:#333; border:none; color:#fff; font-size:0.65rem; padding:4px; margin-bottom:2px; cursor:pointer;">Dar a ${c.name}</button>`).join('') + `<button onclick="this.parentElement.style.display='none'" style="width:100%; background:transparent; border:none; color:#666; font-size:0.6rem;">CERRAR</button>`;
 }
 
 function tradeItem(fromId, toId, itemIdx) {
@@ -224,23 +231,39 @@ function tradeItem(fromId, toId, itemIdx) {
     }
 }
 
-// --- GESTIÓN DE PERSONAJES ---
 function createCharacter() {
     const name = document.getElementById('char-name').value;
     const race = document.getElementById('char-race').value;
     const charClass = document.getElementById('char-class').value;
     const gender = document.getElementById('char-gender').value;
     if (!name) return alert("¡Nombre requerido!");
-    const newChar = { 
+    const classData = srdData.classes.find(c => c.name === charClass);
+    const inventory = [];
+    if(classData && classData.starting_items) {
+        classData.starting_items.forEach(itemName => {
+            const item = [...srdData.weapons, ...srdData.armor, ...srdData.items].find(i => i.name === itemName);
+            if(item) inventory.push({...item});
+        });
+    }
+    const newChar = {
         id: Date.now(), name, race, charClass, gender, level: 1, 
-        hp: srdData.classes.find(c => c.name === charClass).hit_die,
-        wallet: {cp:0, sp:0, gp:0, pp:0, ep:0},
-        inventory: []
+        hp: classData.hit_die, strength: classData.default_str, hasMagicBag: false,
+        wallet: {cp:0, sp:0, gp:0, pp:0, ep:0}, inventory: inventory
     };
     party.push(newChar);
     saveState();
     renderParty();
     document.getElementById('char-name').value = '';
+}
+
+function toggleMagicBag(charId) {
+    const char = party.find(c => c.id == charId);
+    if(char) {
+        char.hasMagicBag = !char.hasMagicBag;
+        saveState();
+        renderParty();
+        if(document.getElementById(`inv-${charId}`).style.display === 'block') renderInventory(charId);
+    }
 }
 
 function deleteCharacter(id) {
@@ -254,10 +277,10 @@ function renderParty() {
     if (!container) return;
     if (party.length === 0) { container.innerHTML = '<p style="color: #666;">Gremio vacío...</p>'; return; }
     container.innerHTML = party.map(c => {
-        // Asegurar que tengan wallet/inv si son viejos
+        if(!c.strength) c.strength = 10;
+        if(c.hasMagicBag === undefined) c.hasMagicBag = false;
         if(!c.wallet) c.wallet = {cp:0, sp:0, gp:0, pp:0, ep:0};
         if(!c.inventory) c.inventory = [];
-        
         return `
         <div class="char-card" style="flex-direction:column; align-items:stretch;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -265,7 +288,11 @@ function renderParty() {
                     <h3>${c.name}</h3>
                     <p>${c.gender} | ${c.race} ${c.charClass} | ${c.hp} PV</p>
                 </div>
-                <div style="display:flex; gap:10px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="text-align:center;">
+                        <label style="font-size:0.5rem; color:var(--gold); display:block;">BOLSA MÁG.</label>
+                        <label class="switch" style="transform: scale(0.6);"><input type="checkbox" ${c.hasMagicBag ? 'checked' : ''} onchange="toggleMagicBag(${c.id})"><span class="slider"></span></label>
+                    </div>
                     <button onclick="toggleInventory(${c.id})" style="background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:50%; width:35px; height:35px; cursor:pointer;"><i class="fa-solid fa-sack-xmark"></i></button>
                     <button class="btn-delete" onclick="deleteCharacter(${c.id})"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
@@ -277,7 +304,6 @@ function renderParty() {
     `}).join('');
 }
 
-// --- DADOS GLOBALES ---
 function toggleDiceTray() { const t = document.getElementById('dice-overlay'); t.style.display = t.style.display === 'flex' ? 'none' : 'flex'; }
 function addDiceToTray(s) { diceTray.push(s); renderDiceTray(); }
 function clearTray() { diceTray = []; document.getElementById('dice-result-area').innerHTML = '--'; document.getElementById('dice-selected-list').innerHTML = ''; }
@@ -287,12 +313,7 @@ function rollAllDice() { if (diceTray.length === 0) return; let t = 0, br = []; 
 function renderNavigation() {
     const nav = document.getElementById('main-nav');
     if(!nav) return;
-    nav.innerHTML = `
-        <button onclick="showTab('tab-home')" class="active"><i class="fa-solid fa-house-chimney"></i><span>Inicio</span></button>
-        ${appConfig.combat ? `<button onclick="showTab('tab-combat')"><i class="fa-solid fa-shield-halved"></i><span>Guerra</span></button>` : ''}
-        ${appConfig.loot ? `<button onclick="showTab('tab-loot')"><i class="fa-solid fa-gem"></i><span>Oro</span></button>` : ''}
-        <button onclick="showTab('tab-party')"><i class="fa-solid fa-users-rays"></i><span>Gremio</span></button>
-    `;
+    nav.innerHTML = `<button onclick="showTab('tab-home')" class="active"><i class="fa-solid fa-house-chimney"></i><span>Inicio</span></button>${appConfig.combat ? `<button onclick="showTab('tab-combat')"><i class="fa-solid fa-shield-halved"></i><span>Guerra</span></button>` : ''}${appConfig.loot ? `<button onclick="showTab('tab-loot')"><i class="fa-solid fa-gem"></i><span>Oro</span></button>` : ''}<button onclick="showTab('tab-party')"><i class="fa-solid fa-users-rays"></i><span>Gremio</span></button>`;
     renderConfigToggles();
 }
 
@@ -323,9 +344,9 @@ function renderLootTable() {
     const container = document.getElementById('loot-items-list');
     if (!container) return;
     const allItems = [...srdData.weapons, ...srdData.armor, ...srdData.items, ...srdData.trinkets];
-    container.innerHTML = allItems.map(i => `<div class="char-card" style="border-left-color: #c5a059;"><div class="char-info"><h3>${i.name}</h3><p>${i.category} | Coste: ${i.cost}</p></div></div>`).join('');
+    container.innerHTML = allItems.map(i => `<div class="char-card" style="border-left-color: #c5a059;"><div class="char-info"><h3>${i.name}</h3><p>${i.category} | Coste: ${i.cost} | Peso: ${i.weight} lb</p></div></div>`).join('');
 }
 
 document.addEventListener('DOMContentLoaded', async () => { await loadSRDData(); renderNavigation(); showTab('tab-home'); });
 
-window.showTab = showTab; window.toggleModule = toggleModule; window.toggleDiceTray = toggleDiceTray; window.addDiceToTray = addDiceToTray; window.clearTray = clearTray; window.rollAllDice = rollAllDice; window.createCharacter = createCharacter; window.deleteCharacter = deleteCharacter; window.generateLoot = generateLoot; window.assignCoins = assignCoins; window.confirmAssignCoins = confirmAssignCoins; window.showAssignItem = showAssignItem; window.confirmAssignItem = confirmAssignItem; window.toggleInventory = toggleInventory; window.spendCoins = spendCoins; window.giveToNPC = giveToNPC; window.showTradeMenu = showTradeMenu; window.tradeItem = tradeItem;
+window.showTab = showTab; window.toggleModule = toggleModule; window.toggleDiceTray = toggleDiceTray; window.addDiceToTray = addDiceToTray; window.clearTray = clearTray; window.rollAllDice = rollAllDice; window.createCharacter = createCharacter; window.deleteCharacter = deleteCharacter; window.generateLoot = generateLoot; window.assignCoins = assignCoins; window.confirmAssignCoins = confirmAssignCoins; window.showAssignItem = showAssignItem; window.confirmAssignItem = confirmAssignItem; window.toggleInventory = toggleInventory; window.spendCoins = spendCoins; window.giveToNPC = giveToNPC; window.showTradeMenu = showTradeMenu; window.tradeItem = tradeItem; window.toggleMagicBag = toggleMagicBag;
