@@ -26,6 +26,7 @@ async function loadSRDData() {
         populateSelects();
         renderLootTable(); 
         renderBestiary();   
+        renderNavigation(); // Inicializar nav con grupos
     } catch (e) {
         console.error("Error cargando base de datos SRD:", e);
     }
@@ -62,18 +63,18 @@ function generateLoot() {
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 5px 0;">
                         <span style="font-weight: bold; color: ${getCoinColor(type)}">${amount} ${type}</span>
                         <div style="display: flex; gap: 5px; align-items: center;">
-                            <input type="number" id="split-${type}" value="${amount}" min="1" max="${amount}" style="width: 50px; font-size: 0.7rem; padding: 2px; margin:0;">
-                            <button onclick="assignCoins('${type}')" style="background: var(--gold); border:none; border-radius:4px; font-size:0.6rem; padding: 3px 6px; cursor:pointer;">DAR</button>
+                            <input type="number" id="split-${type}" value="${amount}" min="1" max="${amount}" style="width: 70px; font-size: 1rem; padding: 4px; margin:0;">
+                            <button onclick="assignCoins('${type}')" style="background: var(--gold); border:none; border-radius:4px; font-size:0.8rem; padding: 5px 10px; cursor:pointer;">DAR</button>
                         </div>
                     </div>
                 `).join('')}
             </div>
-            ${fakeMsg}
+            ${isFake ? `<p style="color:#ff4444; font-size:0.8rem;">⚠️ ¡Alerta de metales viles!</p>` : ''}
             <div style="margin-top: 15px; text-align: left;">
                 ${lootItems.map((item, idx) => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 8px 0;">
-                        <span style="font-size: 0.85rem; color: #fff;">• ${item.name}</span>
-                        <button onclick="showAssignItem(${idx})" style="background: #333; color: var(--gold); border: 1px solid var(--gold); border-radius:4px; font-size:0.6rem; padding: 3px 6px; cursor:pointer;">ASIGNAR</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding: 10px 0;">
+                        <span>• ${item.name}</span>
+                        <button onclick="showAssignItem(${idx})" style="background: #333; color: var(--gold); border: 1px solid var(--gold); border-radius:4px; font-size:0.8rem; padding: 5px 10px; cursor:pointer;">ASIGNAR</button>
                     </div>
                     <div id="assign-item-${idx}" style="display:none; margin-top:5px; background:#222; padding:5px; border-radius:4px;"></div>
                 `).join('')}
@@ -87,10 +88,10 @@ function getCoinColor(type) { const colors = { cp: '#cd7f32', sp: '#c0c0c0', gp:
 function assignCoins(type) {
     const amount = parseInt(document.getElementById(`split-${type}`).value);
     if(amount <= 0 || isNaN(amount)) return;
-    const charList = party.map(c => `<button onclick="confirmAssignCoins('${type}', ${amount}, '${c.id}')" style="display:block; width:100%; margin-bottom:2px; font-size:0.7rem; background:#333; color:#fff; border:1px solid var(--gold); cursor:pointer; padding:4px;">${c.name}</button>`).join('');
+    const charList = party.map(c => `<button onclick="confirmAssignCoins('${type}', ${amount}, '${c.id}')" style="display:block; width:100%; margin-bottom:2px; font-size:1rem; background:#333; color:#fff; border:1px solid var(--gold); cursor:pointer; padding:10px;">${c.name}</button>`).join('');
     const container = document.getElementById('assign-area-global') || createGlobalAssignArea();
     container.style.display = 'block';
-    container.innerHTML = `<div class="card" style="padding:15px; background:#111; border:1px solid var(--gold);"><p style="font-size:0.7rem; color:var(--gold); margin-top:0;">Repartir ${amount}${type} a:</p>${charList}</div>`;
+    container.innerHTML = `<div class="card" style="padding:20px; background:#111; border:1px solid var(--gold);"><p style="color:var(--gold); margin-top:0;">Dar ${amount}${type} a:</p>${charList}<button onclick="this.parentElement.parentElement.style.display='none'" style="margin-top:15px; background:transparent; border:none; color:#666; width:100%;">CANCELAR</button></div>`;
 }
 
 function confirmAssignCoins(type, amount, charId) {
@@ -109,7 +110,7 @@ function confirmAssignCoins(type, amount, charId) {
 function showAssignItem(idx) {
     const area = document.getElementById(`assign-item-${idx}`);
     area.style.display = area.style.display === 'block' ? 'none' : 'block';
-    area.innerHTML = party.map(c => `<button onclick="confirmAssignItem(${idx}, '${c.id}')" style="display:block; width:100%; margin-bottom:2px; font-size:0.7rem; background:#111; color:#fff; border:none; cursor:pointer; padding:4px; text-align:left;">→ ${c.name}</button>`).join('');
+    area.innerHTML = party.map(c => `<button onclick="confirmAssignItem(${idx}, '${c.id}')" style="display:block; width:100%; margin-bottom:2px; font-size:0.9rem; background:#111; color:#fff; border:1px solid #444; cursor:pointer; padding:8px;">→ ${c.name}</button>`).join('');
 }
 
 function confirmAssignItem(idx, charId) {
@@ -125,7 +126,7 @@ function confirmAssignItem(idx, charId) {
 
 function createGlobalAssignArea() {
     const div = document.createElement('div'); div.id = 'assign-area-global';
-    div.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:3000; width:80%; max-width:300px; display:none;';
+    div.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:3000; width:90%; max-width:400px; display:none;';
     document.body.appendChild(div); return div;
 }
 
@@ -146,29 +147,28 @@ function renderInventory(charId) {
     const isHeavilyEncumbered = currentWeight > capacity;
 
     let weightHtml = `
-        <div style="margin-bottom:15px; padding:10px; background:#000; border-radius:8px; border:1px solid ${isHeavilyEncumbered ? '#ff4444' : (isEncumbered ? '#ffa500' : '#333')};">
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
-                <span style="color:var(--gold)">PESO: ${currentWeight.toFixed(1)} / ${capacity} lb</span>
-                <span style="font-size:0.6rem; color:#666;">(STR: ${char.stats.str} ${calculateMod(char.stats.str)})</span>
+        <div style="margin-bottom:15px; padding:15px; background:#000; border-radius:8px; border:1px solid ${isHeavilyEncumbered ? '#ff4444' : (isEncumbered ? '#ffa500' : '#333')};">
+            <div style="display:flex; justify-content:space-between; font-size:1rem;">
+                <span style="color:var(--gold)">CARGA: ${currentWeight.toFixed(1)} / ${capacity} lb</span>
             </div>
-            <div style="height:4px; background:#222; margin-top:8px; border-radius:2px;"><div style="height:100%; width:${Math.min(100, (currentWeight/capacity)*100)}%; background:${isHeavilyEncumbered ? '#ff4444' : (isEncumbered ? '#ffa500' : '#44bb44')};"></div></div>
+            <div style="height:8px; background:#222; margin-top:10px; border-radius:4px;"><div style="height:100%; width:${Math.min(100, (currentWeight/capacity)*100)}%; background:${isHeavilyEncumbered ? '#ff4444' : (isEncumbered ? '#ffa500' : '#44bb44')}; transition:0.3s;"></div></div>
         </div>
     `;
 
-    let walletHtml = `<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; font-size:0.7rem;">`;
-    Object.entries(char.wallet).forEach(([t, v]) => walletHtml += `<div onclick="spendCoins('${charId}', '${t}')" style="background:#222; border:1px solid ${getCoinColor(t)}; padding:3px 6px; border-radius:4px; cursor:pointer;">${v} ${t}</div>`);
+    let walletHtml = `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;">`;
+    Object.entries(char.wallet).forEach(([t, v]) => walletHtml += `<div onclick="spendCoins('${charId}', '${t}')" style="background:#222; border:1px solid ${getCoinColor(t)}; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:1rem;">${v} ${t}</div>`);
     walletHtml += `</div>`;
 
-    let itemsHtml = char.inventory.length === 0 ? '<p style="font-size:0.7rem; color:#666;">Vacío...</p>' : char.inventory.map((item, idx) => `
-        <div style="background:#111; padding:8px; border-radius:4px; margin-bottom:5px; font-size:0.75rem; border:1px solid #333;">
+    let itemsHtml = char.inventory.length === 0 ? '<p style="color:#666;">Sin objetos.</p>' : char.inventory.map((item, idx) => `
+        <div style="background:#111; padding:12px; border-radius:8px; margin-bottom:8px; border:1px solid #333;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span>• ${item.name} (${item.weight || 0} lb)</span>
-                <div style="display:flex; gap:5px;">
-                    <button onclick="giveToNPC('${charId}', ${idx})" style="background:transparent; border:none; color:#ff4444; cursor:pointer;"><i class="fa-solid fa-hand-holding-dollar"></i></button>
-                    <button onclick="showTradeMenu('${charId}', ${idx})" style="background:transparent; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-arrows-left-right"></i></button>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="giveToNPC('${charId}', ${idx})" style="background:transparent; border:none; color:#ff4444; cursor:pointer; font-size:1.2rem;"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+                    <button onclick="showTradeMenu('${charId}', ${idx})" style="background:transparent; border:none; color:var(--gold); cursor:pointer; font-size:1.2rem;"><i class="fa-solid fa-arrows-left-right"></i></button>
                 </div>
             </div>
-            <div id="trade-menu-${charId}-${idx}" style="display:none; margin-top:5px; border-top:1px solid #222; padding-top:5px;"></div>
+            <div id="trade-menu-${charId}-${idx}" style="display:none; margin-top:8px; border-top:1px solid #222; padding-top:8px;"></div>
         </div>
     `).join('');
     container.innerHTML = weightHtml + walletHtml + itemsHtml;
@@ -183,13 +183,13 @@ function spendCoins(charId, type) {
 
 function giveToNPC(charId, itemIdx) {
     const char = party.find(c => c.id == charId);
-    if(confirm(`¿Gastar item?`)) { char.inventory.splice(itemIdx, 1); saveState(); renderInventory(charId); }
+    if(confirm(`¿Entregar item a NPC?`)) { char.inventory.splice(itemIdx, 1); saveState(); renderInventory(charId); }
 }
 
 function showTradeMenu(charId, itemIdx) {
     const menu = document.getElementById(`trade-menu-${charId}-${itemIdx}`); menu.style.display = 'block';
     const others = party.filter(c => c.id != charId);
-    menu.innerHTML = others.map(c => `<button onclick="tradeItem('${charId}', '${c.id}', ${itemIdx})" style="width:100%; background:#333; color:#fff; font-size:0.65rem; padding:4px; margin-bottom:2px; border:none; cursor:pointer;">Dar a ${c.name}</button>`).join('') + `<button onclick="this.parentElement.style.display='none'" style="width:100%; color:#666; border:none; background:transparent; font-size:0.6rem;">CERRAR</button>`;
+    menu.innerHTML = others.map(c => `<button onclick="tradeItem('${charId}', '${c.id}', ${itemIdx})" style="width:100%; background:#333; color:#fff; font-size:1rem; padding:10px; margin-bottom:5px; border:none; border-radius:4px; cursor:pointer;">Dar a ${c.name}</button>`).join('') + `<button onclick="this.parentElement.style.display='none'" style="width:100%; color:#666; background:transparent; border:none; margin-top:5px;">CERRAR</button>`;
 }
 
 function tradeItem(fromId, toId, itemIdx) {
@@ -229,8 +229,7 @@ function createCharacter() {
 
 function toggleMagicBag(charId) {
     const char = party.find(c => c.id == charId);
-    if(char) { char.hasMagicBag = !char.hasMagicBag; saveState(); renderParty(); if(document.getElementById(`inv-${charId}`).style.display === 'block') renderInventory(charId);
-    }
+    if(char) { char.hasMagicBag = !char.hasMagicBag; saveState(); renderParty(); if(document.getElementById(`inv-${charId}`).style.display === 'block') renderInventory(charId); }
 }
 
 function deleteCharacter(id) { party = party.filter(c => c.id != id); saveState(); renderParty(); }
@@ -240,15 +239,9 @@ function renderParty() {
     if (!container) return; if (party.length === 0) { container.innerHTML = '<p style="color: #666;">Gremio vacío...</p>'; return; }
     container.innerHTML = party.map(c => {
         if(!c.stats) c.stats = {str:10, dex:10, con:10, int:10, wis:10, cha:10};
-        
         const statsHtml = `
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 10px 0; background: #000; padding: 10px; border-radius: 8px; border: 1px solid #222;">
-                <div style="font-size:0.6rem; color:#888;">STR: <b style="color:var(--gold)">${c.stats.str}</b> <span style="color:#fff;">(${calculateMod(c.stats.str)})</span></div>
-                <div style="font-size:0.6rem; color:#888;">DEX: <b style="color:var(--gold)">${c.stats.dex}</b> <span style="color:#fff;">(${calculateMod(c.stats.dex)})</span></div>
-                <div style="font-size:0.6rem; color:#888;">CON: <b style="color:var(--gold)">${c.stats.con}</b> <span style="color:#fff;">(${calculateMod(c.stats.con)})</span></div>
-                <div style="font-size:0.6rem; color:#888;">INT: <b style="color:var(--gold)">${c.stats.int}</b> <span style="color:#fff;">(${calculateMod(c.stats.int)})</span></div>
-                <div style="font-size:0.6rem; color:#888;">WIS: <b style="color:var(--gold)">${c.stats.wis}</b> <span style="color:#fff;">(${calculateMod(c.stats.wis)})</span></div>
-                <div style="font-size:0.6rem; color:#888;">CHA: <b style="color:var(--gold)">${c.stats.cha}</b> <span style="color:#fff;">(${calculateMod(c.stats.cha)})</span></div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px 0; background: #000; padding: 15px; border-radius: 10px; border: 1px solid #222;">
+                ${Object.entries(c.stats).map(([s, v]) => `<div style="font-size:0.8rem; color:#888;">${s.toUpperCase()}: <b style="color:var(--gold)">${v}</b> <span style="color:#fff;">(${calculateMod(v)})</span></div>`).join('')}
             </div>
         `;
 
@@ -256,35 +249,63 @@ function renderParty() {
         <div class="char-card" style="flex-direction:column; align-items:stretch;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div class="char-info">
-                    <h3>${c.name}</h3>
-                    <p>${c.gender} | ${c.race} ${c.charClass} | PV: ${c.hp}</p>
+                    <h3 style="margin-bottom:5px;">${c.name}</h3>
+                    <p style="font-size:1.1rem;">${c.gender} | ${c.race} ${c.charClass}</p>
+                    <p style="color:var(--dnd-red); font-weight:bold;">PV: ${c.hp}</p>
                 </div>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <div style="text-align:center;"><label style="font-size:0.5rem; color:var(--gold); display:block;">BAG</label><label class="switch" style="transform: scale(0.6);"><input type="checkbox" ${c.hasMagicBag ? 'checked' : ''} onchange="toggleMagicBag(${c.id})"><span class="slider"></span></label></div>
-                    <button onclick="toggleInventory(${c.id})" style="background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:50%; width:35px; height:35px; cursor:pointer;"><i class="fa-solid fa-sack-xmark"></i></button>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <div style="text-align:center;"><label style="font-size:0.6rem; color:var(--gold); display:block; margin-bottom:2px;">BOLSA</label><label class="switch" style="transform: scale(0.8);"><input type="checkbox" ${c.hasMagicBag ? 'checked' : ''} onchange="toggleMagicBag(${c.id})"><span class="slider"></span></label></div>
+                    <button onclick="toggleInventory(${c.id})" style="background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:10px; width:45px; height:45px; cursor:pointer; font-size:1.4rem;"><i class="fa-solid fa-sack-xmark"></i></button>
                     <button class="btn-delete" onclick="deleteCharacter(${c.id})"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             </div>
             ${statsHtml}
-            <div id="inv-${c.id}" style="display:none; margin-top:5px; border-top:1px solid #222; padding-top:10px;"><div id="inv-list-${c.id}"></div></div>
+            <div id="inv-${c.id}" style="display:none; margin-top:15px; border-top:1px solid #222; padding-top:15px;"><div id="inv-list-${c.id}"></div></div>
         </div>
     `}).join('');
 }
 
-// --- OTROS ---
-function toggleDiceTray() { const t = document.getElementById('dice-overlay'); t.style.display = t.style.display === 'flex' ? 'none' : 'flex'; }
-function addDiceToTray(s) { diceTray.push(s); renderDiceTray(); }
-function clearTray() { diceTray = []; document.getElementById('dice-result-area').innerHTML = '--'; document.getElementById('dice-selected-list').innerHTML = ''; }
-function renderDiceTray() { const l = document.getElementById('dice-selected-list'); if (diceTray.length === 0) { l.innerHTML = 'Toca dados...'; return; } const counts = {}; diceTray.forEach(s => counts[s] = (counts[s] || 0) + 1); l.innerHTML = Object.entries(counts).map(([s, c]) => `${c}d${s}`).join(' + '); }
-function rollAllDice() { if (diceTray.length === 0) return; let t = 0, br = []; diceTray.forEach(s => { const r = Math.floor(Math.random() * s) + 1; t += r; br.push(r); }); document.getElementById('dice-result-area').innerHTML = `<div style="font-size:3.5rem; color:#f1d592;">${t}</div><div style="color:#666; font-size:0.9rem;">[${br.join(' + ')}]</div>`; }
-function renderNavigation() { const n = document.getElementById('main-nav'); if(!n) return;
-    n.innerHTML = `<button onclick="showTab('tab-home')" class="active"><i class="fa-solid fa-house-chimney"></i><span>Inicio</span></button>${appConfig.combat ? `<button onclick="showTab('tab-combat')"><i class="fa-solid fa-shield-halved"></i><span>Guerra</span></button>` : ''}${appConfig.loot ? `<button onclick="showTab('tab-loot')"><i class="fa-solid fa-gem"></i><span>Oro</span></button>` : ''}<button onclick="showTab('tab-party')"><i class="fa-solid fa-users-rays"></i><span>Gremio</span></button>`; renderConfigToggles(); }
-function renderConfigToggles() { const c = document.getElementById('config-panel'); if(!c) return; const m = [{id:'combat',label:'Tablero Guerra',icon:'fa-shield-halved'},{id:'loot',label:'Cámara Tesoros',icon:'fa-gem'},{id:'survival',label:'Supervivencia',icon:'fa-campground'},{id:'community',label:'Tablón Gremial',icon:'fa-bullhorn'}]; c.innerHTML = m.map(x => `<div class="module-row"><div class="module-label"><i class="fa-solid ${x.icon}"></i> <span>${x.label}</span></div><label class="switch"><input type="checkbox" ${appConfig[x.id] ? 'checked' : ''} onchange="toggleModule('${x.id}')"><span class="slider"></span></label></div>`).join(''); }
-function toggleModule(m) { appConfig[m] = !appConfig[m]; saveState(); renderNavigation(); }
-function showTab(t) { document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none'); document.getElementById(t).style.display = 'block'; document.querySelectorAll('nav button').forEach(b => b.classList.remove('active')); const btn = document.querySelector(`nav button[onclick*="${t}"]`); if(btn) btn.classList.add('active'); if(t === 'tab-party') renderParty(); if(t === 'tab-combat') renderBestiary(); if(t === 'tab-loot') renderLootTable(); }
-function renderBestiary() { const container = document.getElementById('monster-list'); if (!container) return; container.innerHTML = srdData.monsters.map(m => `<div class="char-card" style="border-left-color: #d32f2f;"><div class="char-info"><h3>${m.name}</h3><p>${m.type} | CA: ${m.ac} | PV: ${m.hp} | CR: ${m.cr}</p></div></div>`).join(''); }
-function renderLootTable() { const container = document.getElementById('loot-items-list'); if (!container) return; const allItems = [...srdData.weapons, ...srdData.armor, ...srdData.items, ...srdData.trinkets]; container.innerHTML = allItems.map(i => `<div class="char-card" style="border-left-color: #c5a059;"><div class="char-info"><h3>${i.name}</h3><p>${i.category} | Coste: ${i.cost} | Peso: ${i.weight} lb</p></div></div>`).join(''); }
+// --- MODULARIDAD ---
+function renderNavigation() {
+    const nav = document.getElementById('main-nav'); if(!nav) return;
+    nav.innerHTML = `
+        <button onclick="showTab('tab-home')" class="active"><i class="fa-solid fa-house-chimney"></i><span>Home</span></button>
+        ${appConfig.combat ? `<button onclick="showTab('tab-combat')"><i class="fa-solid fa-shield-halved"></i><span>Guerra</span></button>` : ''}
+        ${appConfig.loot ? `<button onclick="showTab('tab-loot')"><i class="fa-solid fa-gem"></i><span>Oro</span></button>` : ''}
+        <button onclick="showTab('tab-party')"><i class="fa-solid fa-users-rays"></i><span>Gremio</span></button>
+    `;
+    renderConfigToggles();
+}
 
-document.addEventListener('DOMContentLoaded', async () => { await loadSRDData(); renderNavigation(); showTab('tab-home'); });
+function renderConfigToggles() {
+    const c = document.getElementById('config-panel'); if(!c) return;
+    const m = [{id:'combat',label:'Tablero Guerra',icon:'fa-shield-halved'},{id:'loot',label:'Cámara Tesoros',icon:'fa-gem'},{id:'survival',label:'Supervivencia',icon:'fa-campground'},{id:'community',label:'Tablón Gremial',icon:'fa-bullhorn'}];
+    c.innerHTML = m.map(x => `<div class="module-row" style="padding:15px 0;"><div class="module-label"><i class="fa-solid ${x.icon}"></i> <span style="font-size:1.1rem;">${x.label}</span></div><label class="switch"><input type="checkbox" ${appConfig[x.id] ? 'checked' : ''} onchange="toggleModule('${x.id}')"><span class="slider"></span></label></div>`).join('');
+}
+
+function toggleModule(m) { appConfig[m] = !appConfig[m]; saveState(); renderNavigation(); }
+
+function showTab(t) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.getElementById(t).style.display = 'block';
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`nav button[onclick*="${t}"]`); if(btn) btn.classList.add('active');
+    if(t === 'tab-party') renderParty();
+    if(t === 'tab-combat') renderBestiary();
+    if(t === 'tab-loot') renderLootTable();
+}
+
+function renderBestiary() {
+    const container = document.getElementById('monster-list'); if (!container) return;
+    container.innerHTML = srdData.monsters.map(m => `<div class="char-card" style="border-left-color: #d32f2f; margin-bottom:12px;"><div class="char-info"><h3>${m.name}</h3><p style="font-size:1rem;">${m.type} | CA: ${m.ac} | PV: ${m.hp} | CR: ${m.cr}</p></div></div>`).join('');
+}
+
+function renderLootTable() {
+    const container = document.getElementById('loot-items-list'); if (!container) return;
+    const allItems = [...srdData.weapons, ...srdData.armor, ...srdData.items, ...srdData.trinkets];
+    container.innerHTML = allItems.map(i => `<div class="char-card" style="border-left-color: #c5a059; margin-bottom:12px;"><div class="char-info"><h3>${i.name}</h3><p style="font-size:1rem;">${i.category} | Coste: ${i.cost} | ${i.weight} lb</p></div></div>`).join('');
+}
+
+document.addEventListener('DOMContentLoaded', async () => { await loadSRDData(); });
 
 window.showTab = showTab; window.toggleModule = toggleModule; window.toggleDiceTray = toggleDiceTray; window.addDiceToTray = addDiceToTray; window.clearTray = clearTray; window.rollAllDice = rollAllDice; window.createCharacter = createCharacter; window.deleteCharacter = deleteCharacter; window.generateLoot = generateLoot; window.assignCoins = assignCoins; window.confirmAssignCoins = confirmAssignCoins; window.showAssignItem = showAssignItem; window.confirmAssignItem = confirmAssignItem; window.toggleInventory = toggleInventory; window.spendCoins = spendCoins; window.giveToNPC = giveToNPC; window.showTradeMenu = showTradeMenu; window.tradeItem = tradeItem; window.toggleMagicBag = toggleMagicBag;
