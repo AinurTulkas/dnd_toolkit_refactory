@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Overlay de Dados -->
     <div id="dice-overlay">
         <div class="dice-tray">
             <div style="text-align:right;"><i class="fa-solid fa-xmark" onclick="toggleDiceTray()" style="cursor:pointer; color: var(--gold);"></i></div>
@@ -36,7 +35,6 @@
     </header>
 
     <div class="container">
-        <!-- Dashboard -->
         <div id="tab-home" class="tab-content" style="display: block;">
             <div class="card">
                 <h2>Panel de Control</h2>
@@ -45,8 +43,21 @@
             <div id="config-panel" class="module-card"></div>
         </div>
 
-        <div id="tab-combat" class="tab-content"><div class="card"><h2>Tablero de Guerra</h2></div></div>
-        <div id="tab-loot" class="tab-content"><div class="card"><h2>Cámara de Tesoros</h2></div></div>
+        <div id="tab-combat" class="tab-content">
+            <div class="card">
+                <h2>Tablero de Guerra</h2>
+                <p>Bestiario SRD</p>
+                <div id="monster-list"></div>
+            </div>
+        </div>
+
+        <div id="tab-loot" class="tab-content">
+            <div class="card">
+                <h2>Cámara de Tesoros</h2>
+                <p>Armas, Armaduras y Equipo</p>
+                <div id="loot-items-list"></div>
+            </div>
+        </div>
         
         <div id="tab-party" class="tab-content">
             <div class="card">
@@ -54,29 +65,16 @@
                 <div id="character-list"></div>
                 <hr style="border: 0; border-top: 1px solid #222; margin: 25px 0;">
                 <h3>Nuevo Héroe</h3>
-                <div class="form-group">
-                    <label>Nombre</label>
-                    <input type="text" id="char-name" placeholder="Ej. Aragorn">
-                </div>
-                <div class="form-group">
-                    <label>Raza</label>
-                    <select id="char-race"></select>
-                </div>
-                <div class="form-group">
-                    <label>Clase</label>
-                    <select id="char-class"></select>
-                </div>
-                <div class="form-group">
-                    <label>Género</label>
-                    <select id="char-gender"></select>
-                </div>
+                <div class="form-group"><label>Nombre</label><input type="text" id="char-name" placeholder="Ej. Aragorn"></div>
+                <div class="form-group"><label>Raza</label><select id="char-race"></select></div>
+                <div class="form-group"><label>Clase</label><select id="char-class"></select></div>
+                <div class="form-group"><label>Género</label><select id="char-gender"></select></div>
                 <button onclick="createCharacter()" class="btn-primary">UNIR AL GREMIO</button>
             </div>
         </div>
     </div>
 
     <nav id="main-nav"></nav>
-
     <script src="app.js"></script>
 </body>
 </html>

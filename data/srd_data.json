@@ -24,5 +24,39 @@
     {"name": "Semiorco", "speed": 30},
     {"name": "Tiflin", "speed": 30}
   ],
-  "genders": ["Masculino", "Femenino", "No binario"]
+  "genders": ["Masculino", "Femenino", "No binario"],
+  "monsters": [
+    {"name": "Goblin", "type": "Humanoide", "ac": 15, "hp": 7, "cr": "1/4"},
+    {"name": "Orco", "type": "Humanoide", "ac": 13, "hp": 15, "cr": "1/2"},
+    {"name": "Esqueleto", "type": "No muerto", "ac": 13, "hp": 13, "cr": "1/4"},
+    {"name": "Zombi", "type": "No muerto", "ac": 8, "hp": 22, "cr": "1/4"},
+    {"name": "Lobo", "type": "Bestia", "ac": 13, "hp": 11, "cr": "1/4"},
+    {"name": "Ogro", "type": "Gigante", "ac": 11, "hp": 59, "cr": "2"},
+    {"name": "Bugbear", "type": "Humanoide", "ac": 16, "hp": 27, "cr": "1"},
+    {"name": "Gorgona", "type": "Monstruosidad", "ac": 19, "hp": 114, "cr": "6"},
+    {"name": "Dragón Rojo Joven", "type": "Dragón", "ac": 18, "hp": 178, "cr": "10"}
+  ],
+  "weapons": [
+    {"name": "Daga", "category": "Sencilla", "damage": "1d4 p", "cost": "2 po"},
+    {"name": "Espada Corta", "category": "Marcial", "damage": "1d6 p", "cost": "10 po"},
+    {"name": "Espada Larga", "category": "Marcial", "damage": "1d8 p", "cost": "15 po"},
+    {"name": "Hacha de Batalla", "category": "Marcial", "damage": "1d8 c", "cost": "10 po"},
+    {"name": "Arco Corto", "category": "Sencilla", "damage": "1d6 p", "cost": "25 po"},
+    {"name": "Arco Largo", "category": "Marcial", "damage": "1d8 p", "cost": "50 po"},
+    {"name": "Gran Hacha", "category": "Marcial", "damage": "1d12 c", "cost": "30 po"}
+  ],
+  "armor": [
+    {"name": "Cuero", "category": "Ligera", "ac": "11 + Des", "cost": "10 po"},
+    {"name": "Cuero Tachonado", "category": "Ligera", "ac": "12 + Des", "cost": "45 po"},
+    {"name": "Cota de Malla", "category": "Pesada", "ac": "16", "cost": "75 po"},
+    {"name": "Placas", "category": "Pesada", "ac": "18", "cost": "1500 po"},
+    {"name": "Escudo", "category": "Escudo", "ac": "+2", "cost": "10 po"}
+  ],
+  "items": [
+    {"name": "Mochila", "category": "Equipo", "cost": "2 po"},
+    {"name": "Cuerda de Cáñamo (50 pies)", "category": "Equipo", "cost": "1 po"},
+    {"name": "Antorcha", "category": "Equipo", "cost": "1 pc"},
+    {"name": "Raciones (1 día)", "category": "Equipo", "cost": "5 pp"},
+    {"name": "Odre", "category": "Equipo", "cost": "1 po"}
+  ]
 }
