@@ -1,0 +1,28 @@
+{
+  "classes": [
+    {"name": "Bárbaro", "hit_die": 12, "primary_stat": "STR"},
+    {"name": "Bardo", "hit_die": 8, "primary_stat": "CHA"},
+    {"name": "Clérigo", "hit_die": 8, "primary_stat": "WIS"},
+    {"name": "Druida", "hit_die": 8, "primary_stat": "WIS"},
+    {"name": "Guerrero", "hit_die": 10, "primary_stat": "STR"},
+    {"name": "Monje", "hit_die": 8, "primary_stat": "DEX"},
+    {"name": "Paladín", "hit_die": 10, "primary_stat": "CHA"},
+    {"name": "Explorador", "hit_die": 10, "primary_stat": "DEX"},
+    {"name": "Pícaro", "hit_die": 8, "primary_stat": "DEX"},
+    {"name": "Hechicero", "hit_die": 6, "primary_stat": "CHA"},
+    {"name": "Brujo", "hit_die": 8, "primary_stat": "CHA"},
+    {"name": "Mago", "hit_die": 6, "primary_stat": "INT"}
+  ],
+  "races": [
+    {"name": "Enano", "speed": 25},
+    {"name": "Elfo", "speed": 30},
+    {"name": "Mediano", "speed": 25},
+    {"name": "Humano", "speed": 30},
+    {"name": "Dracónido", "speed": 30},
+    {"name": "Gnomo", "speed": 25},
+    {"name": "Semielfo", "speed": 30},
+    {"name": "Semiorco", "speed": 30},
+    {"name": "Tiflin", "speed": 30}
+  ],
+  "genders": ["Masculino", "Femenino", "No binario"]
+}
