@@ -97,8 +97,12 @@ function createCharacter() {
     const allItems = [...srdData.weapons, ...srdData.armor, ...srdData.items];
     if(classData && classData.starting_items) {
         classData.starting_items.forEach(itemName => {
-            const itemMatch = allItems.find(i => i.name.toLowerCase() === itemName.toLowerCase());
-            if(itemMatch) inventory.push({...itemMatch});
+            const itemMatch = allItems.find(i => i.name.toLowerCase().trim() === itemName.toLowerCase().trim());
+            if(itemMatch) {
+                inventory.push({...itemMatch});
+            } else {
+                inventory.push({name: itemName, category: "Equipo", weight: 0});
+            }
         });
     }
 
@@ -174,7 +178,7 @@ function getCoinColor(type) { const colors = { cp:'#cd7f32', sp:'#c0c0c0', gp:'#
 function assignCoins(type) {
     const amount = parseInt(document.getElementById(`split-${type}`).value);
     if (amount <= 0 || isNaN(amount)) return;
-    const charList = party.map(c => `<button onclick="confirmAssignCoins('${type}', ${amount}, '${c.id}')" style="display:block; width:100%; margin-bottom:5px; font-size:1.1rem; background:#333; color:#fff; border:1px solid var(--gold); padding:12px; cursor:pointer;">${c.name}</button>`).join('');
+    const charList = party.map(c => `<button onclick="confirmAssignCoins('${type}', ${amount}, '${c.id}')" style="display:block; width:100%; margin-bottom:5px; font-size:1.1rem; background:#333; color:#fff; border:1px solid var(--gold); cursor:pointer; padding:12px;">${c.name}</button>`).join('');
     const container = document.getElementById('assign-area-global') || createGlobalAssignArea();
     container.style.display = 'block';
     container.innerHTML = `<div class="card" style="padding:25px; background:#111; border:1px solid var(--gold);"><p style="color:var(--gold); margin-bottom:15px;">Dar ${amount}${type} a:</p>${charList}</div>`;
