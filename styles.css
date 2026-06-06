@@ -305,3 +305,40 @@ input[type="text"], input[type="number"], select {
     cursor: pointer;
     font-size: 1.5rem;
 }
+
+/* Gestión de Roles y Visibilidad */
+.is-adventurer .master-only {
+    display: none !important;
+}
+
+/* Etiquetas de Tablón */
+.notice-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.tag-quest { background: #b30000; color: white; }
+.tag-recruitment { background: #0066cc; color: white; }
+
+/* Control de Campañas en Lobby */
+.campaign-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    justify-content: flex-end;
+}
+.btn-mini {
+    background: transparent;
+    border: 1px solid #444;
+    color: #888;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+.btn-mini:hover { color: var(--gold); border-color: var(--gold); }
+.btn-delete-camp:hover { color: #ff4444; border-color: #ff4444; }
