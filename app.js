@@ -305,7 +305,7 @@ function showTradeMenu(charId, idx) {
     const menu = document.getElementById(`trade-menu-${charId}-${idx}`); menu.style.display = 'block';
     menu.innerHTML = `<p style="font-size:0.8rem; color:var(--gold); margin-bottom:10px;">Intercambiar con:</p>` + 
         party.filter(c => c.id != charId).map(c => `<button onclick="tradeItem('${charId}', '${c.id}', ${idx})" style="width:100%; background:#333; color:#fff; padding:12px; margin-bottom:8px; border:none; border-radius:6px; font-weight:bold;">${c.name}</button>`).join('') + 
-        `<button onclick="this.parentElement.style.display='none'" style="width:100%; color:#666; background:transparent; border:none; margin-top:5px;">CERRAR</button>`;
+        `<button onclick="this.parentElement.style.display='none'" style="width:100%; color:#666; background:transparent; border:none0; margin-top:5px;">CERRAR</button>`;
 }
 
 function tradeItem(fromId, toId, idx) {
