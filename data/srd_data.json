@@ -102,10 +102,5 @@
     {"name": "Kit de curación", "category": "Equipo", "cost": "5 po", "weight": 3},
     {"name": "Foco herbáceo", "category": "Equipo", "cost": "5 po", "weight": 2},
     {"name": "Lira", "category": "Equipo", "cost": "30 po", "weight": 2}
-  ],
-  "trinkets": [
-    {"name": "Ojo de cristal", "category": "Baratija", "weight": 0.1},
-    {"name": "Papel quemado", "category": "Baratija", "weight": 0.1},
-    {"name": "Llave antigua", "category": "Baratija", "weight": 0.1}
   ]
 }
