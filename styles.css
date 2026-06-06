@@ -16,7 +16,8 @@ body {
     margin: 0;
     padding-bottom: 120px;
     overflow-x: hidden;
-    font-size: 16px; /* Aumentado 100% (antes por defecto ~8-12px en elementos internos) */
+    font-size: 16px;
+    overscroll-behavior-y: contain; /* Evita el pull-to-refresh accidental */
 }
 
 header {
@@ -27,12 +28,13 @@ header {
     align-items: center;
     border-bottom: 1px solid var(--gold-muted);
     position: relative;
+    z-index: 100;
 }
 
 header h1 {
     font-family: 'Cinzel', serif;
     color: var(--gold);
-    font-size: 2rem; /* Antes 1.5rem */
+    font-size: 2rem;
     letter-spacing: 5px;
     margin: 0;
     text-transform: uppercase;
@@ -42,39 +44,39 @@ header h1 {
     position: absolute;
     right: 30px;
     color: var(--gold);
-    font-size: 2rem; /* Antes 1.4rem */
+    font-size: 2rem;
     cursor: pointer;
     transition: 0.3s;
 }
 
 /* Form Elements */
-input, select, button {
-    font-size: 1rem !important; /* Forzar 16px */
+input, select, button, textarea {
+    font-size: 1rem !important;
 }
 
 .card h2 {
     font-family: 'Cinzel', serif;
     color: var(--gold);
-    font-size: 1.6rem; /* Antes 1.1rem */
+    font-size: 1.6rem;
     letter-spacing: 2px;
     margin-bottom: 10px;
 }
 
 .card p {
     color: var(--text-dim);
-    font-size: 1.1rem; /* Antes 0.85rem */
+    font-size: 1.1rem;
 }
 
 .char-info h3 {
     margin: 0;
     font-family: 'Cinzel', serif;
-    font-size: 1.4rem; /* Antes 1rem */
+    font-size: 1.4rem;
     color: var(--gold-bright);
 }
 
 .char-info p {
     margin: 5px 0 0;
-    font-size: 1rem; /* Antes 0.75rem */
+    font-size: 1rem;
     color: var(--text-dim);
 }
 
@@ -82,12 +84,12 @@ input, select, button {
 [id^="inv-list-"] div,
 [id^="inv-list-"] span,
 .stats-grid div {
-    font-size: 0.9rem !important; /* Escalar proporcionalmente */
+    font-size: 0.9rem !important;
 }
 
 /* Nav */
 nav button span {
-    font-size: 0.8rem; /* Antes 0.5rem */
+    font-size: 0.8rem;
 }
 
 /* Dice Overlay */
@@ -98,12 +100,10 @@ nav button span {
     font-size: 1.5rem;
 }
 
-/* REFUERZO DE TAMAÑO GENERAL */
 p, label, span, input, select {
     font-size: 1rem;
 }
 
-/* --- ESTILOS PREVIOS REUTILIZADOS --- */
 #dice-overlay {
     display: none;
     position: fixed;
