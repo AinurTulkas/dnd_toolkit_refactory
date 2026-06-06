@@ -1,22 +1,19 @@
 {
   "classes": [
-    {"name": "Bárbaro", "hit_die": 12, "starting_items": ["Gran Hacha", "Daga", "Mochila", "Raciones (1 día)", "Odre"]},
-    {"name": "Bardo", "hit_die": 8, "starting_items": ["Cuero", "Daga", "Mochila", "Raciones (1 día)", "Odre", "Lira"]},
-    {"name": "Clérigo", "hit_die": 8, "starting_items": ["Cota de Malla", "Escudo", "Maza", "Mochila", "Raciones (1 día)", "Odre", "Símbolo Sagrado"]},
-    {"name": "Druida", "hit_die": 8, "starting_items": ["Cuero", "Escudo", "Cimitarra", "Mochila", "Raciones (1 día)", "Odre", "Foco Herbáceo"]},
-    {"name": "Guerrero", "hit_die": 10, "starting_items": ["Cota de Malla", "Espada Larga", "Escudo", "Arco Largo", "Mochila", "Raciones (1 día)", "Odre"]},
-    {"name": "Monje", "hit_die": 8, "starting_items": ["Espada Corta", "Daga", "Mochila", "Raciones (1 día)", "Odre"]},
-    {"name": "Paladín", "hit_die": 10, "starting_items": ["Cota de Malla", "Escudo", "Espada Larga", "Mochila", "Raciones (1 día)", "Odre", "Símbolo Sagrado"]},
-    {"name": "Explorador", "hit_die": 10, "starting_items": ["Cuero", "Espada Corta", "Arco Largo", "Mochila", "Raciones (1 día)", "Odre"]},
-    {"name": "Pícaro", "hit_die": 8, "starting_items": ["Cuero", "Daga", "Espada Corta", "Arco Corto", "Mochila", "Herramientas de ladrón"]},
-    {"name": "Hechicero", "hit_die": 6, "starting_items": ["Daga", "Mochila", "Raciones (1 día)", "Odre", "Foco Arcano"]},
-    {"name": "Brujo", "hit_die": 8, "starting_items": ["Cuero", "Daga", "Arco Corto", "Mochila", "Raciones (1 día)", "Odre", "Foco Arcano"]},
-    {"name": "Mago", "hit_die": 6, "starting_items": ["Daga", "Mochila", "Raciones (1 día)", "Odre", "Libro de Conjuros", "Foco Arcano"]}
+    {"name": "Bárbaro", "hit_die": 12, "starting_items": ["Gran Hacha", "Daga", "Mochila", "Raciones", "Odre"]},
+    {"name": "Bardo", "hit_die": 8, "starting_items": ["Cuero", "Daga", "Mochila", "Raciones", "Odre", "Lira"]},
+    {"name": "Clérigo", "hit_die": 8, "starting_items": ["Cota de Malla", "Escudo", "Maza", "Mochila", "Raciones", "Odre", "Símbolo Sagrado"]},
+    {"name": "Druida", "hit_die": 8, "starting_items": ["Cuero", "Escudo", "Cimitarra", "Mochila", "Raciones", "Odre"]},
+    {"name": "Guerrero", "hit_die": 10, "starting_items": ["Cota de Malla", "Espada Larga", "Escudo", "Arco Largo", "Mochila", "Raciones"]},
+    {"name": "Monje", "hit_die": 8, "starting_items": ["Espada Corta", "Daga", "Raciones", "Odre"]},
+    {"name": "Paladín", "hit_die": 10, "starting_items": ["Cota de Malla", "Escudo", "Espada Larga", "Símbolo Sagrado", "Raciones"]},
+    {"name": "Explorador", "hit_die": 10, "starting_items": ["Cuero", "Espada Corta", "Arco Largo", "Mochila", "Raciones"]},
+    {"name": "Pícaro", "hit_die": 8, "starting_items": ["Cuero", "Daga", "Espada Corta", "Herramientas de ladrón", "Mochila"]},
+    {"name": "Hechicero", "hit_die": 6, "starting_items": ["Daga", "Mochila", "Foco Arcano", "Raciones"]},
+    {"name": "Brujo", "hit_die": 8, "starting_items": ["Cuero", "Daga", "Foco Arcano", "Mochila", "Raciones"]},
+    {"name": "Mago", "hit_die": 6, "starting_items": ["Daga", "Mochila", "Libro de Conjuros", "Foco Arcano", "Raciones"]}
   ],
-  "races": [
-    {"name": "Enano"}, {"name": "Elfo"}, {"name": "Mediano"}, {"name": "Humano"}, 
-    {"name": "Dracónido"}, {"name": "Gnomo"}, {"name": "Semielfo"}, {"name": "Semiorco"}, {"name": "Tiflin"}
-  ],
+  "races": [{"name": "Enano"}, {"name": "Elfo"}, {"name": "Mediano"}, {"name": "Humano"}, {"name": "Dracónido"}, {"name": "Gnomo"}, {"name": "Semielfo"}, {"name": "Semiorco"}, {"name": "Tiflin"}],
   "genders": ["Masculino", "Femenino", "No binario"],
   "monsters": [
     {"name": "Goblin", "type": "Humanoide", "ac": 15, "hp": 7, "cr": "1/4"},
@@ -26,44 +23,34 @@
     {"name": "Lobo", "type": "Bestia", "ac": 13, "hp": 11, "cr": "1/4"},
     {"name": "Ogro", "type": "Gigante", "ac": 11, "hp": 59, "cr": "2"},
     {"name": "Bugbear", "type": "Humanoide", "ac": 16, "hp": 27, "cr": "1"},
-    {"name": "Gorgona", "type": "Monstruosidad", "ac": 19, "hp": 114, "cr": "6"},
-    {"name": "Dragón Rojo Joven", "type": "Dragón", "ac": 18, "hp": 178, "cr": "10"},
-    {"name": "Liche", "type": "No muerto", "ac": 17, "hp": 135, "cr": "21"},
-    {"name": "Mímico", "type": "Monstruosidad", "ac": 12, "hp": 58, "cr": "2"},
-    {"name": "Bebestible", "type": "Constructo", "ac": 11, "hp": 30, "cr": "1"},
-    {"name": "Quimera", "type": "Monstruosidad", "ac": 14, "hp": 114, "cr": "6"}
+    {"name": "Búho-oso", "type": "Monstruosidad", "ac": 13, "hp": 59, "cr": "3"},
+    {"name": "Cubo Gelatinoso", "type": "Cieno", "ac": 6, "hp": 84, "cr": "2"},
+    {"name": "Espectador", "type": "Aberración", "ac": 14, "hp": 39, "cr": "3"},
+    {"name": "Dragón Rojo Joven", "type": "Dragón", "ac": 18, "hp": 178, "cr": "10"}
   ],
   "weapons": [
-    {"name": "Daga", "category": "Sencilla", "damage": "1d4 p", "cost": "2 po", "weight": 1},
-    {"name": "Maza", "category": "Sencilla", "damage": "1d6 c", "cost": "5 po", "weight": 4},
-    {"name": "Cimitarra", "category": "Marcial", "damage": "1d6 r", "cost": "25 po", "weight": 3},
-    {"name": "Espada Corta", "category": "Marcial", "damage": "1d6 p", "cost": "10 po", "weight": 2},
-    {"name": "Espada Larga", "category": "Marcial", "damage": "1d8 p", "cost": "15 po", "weight": 3},
-    {"name": "Arco Corto", "category": "Sencilla", "damage": "1d6 p", "cost": "25 po", "weight": 2},
-    {"name": "Arco Largo", "category": "Marcial", "damage": "1d8 p", "cost": "50 po", "weight": 2},
-    {"name": "Gran Hacha", "category": "Marcial", "damage": "1d12 c", "cost": "30 po", "weight": 7}
+    {"name": "Daga", "category": "Arma", "damage": "1d4 p", "cost": "2 po", "weight": 1},
+    {"name": "Maza", "category": "Arma", "damage": "1d6 c", "cost": "5 po", "weight": 4},
+    {"name": "Cimitarra", "category": "Arma", "damage": "1d6 r", "cost": "25 po", "weight": 3},
+    {"name": "Espada Corta", "category": "Arma", "damage": "1d6 p", "cost": "10 po", "weight": 2},
+    {"name": "Espada Larga", "category": "Arma", "damage": "1d8 p", "cost": "15 po", "weight": 3},
+    {"name": "Gran Hacha", "category": "Arma", "damage": "1d12 c", "cost": "30 po", "weight": 7},
+    {"name": "Arco Corto", "category": "Arma", "damage": "1d6 p", "cost": "25 po", "weight": 2},
+    {"name": "Arco Largo", "category": "Arma", "damage": "1d8 p", "cost": "50 po", "weight": 2}
   ],
   "armor": [
-    {"name": "Cuero", "category": "Ligera", "ac": "11 + Des", "cost": "10 po", "weight": 10},
-    {"name": "Cota de Malla", "category": "Pesada", "ac": "16", "cost": "75 po", "weight": 55},
-    {"name": "Placas", "category": "Pesada", "ac": "18", "cost": "1500 po", "weight": 65},
-    {"name": "Escudo", "category": "Escudo", "ac": "+2", "cost": "10 po", "weight": 6}
+    {"name": "Cuero", "category": "Armadura", "ac": "11", "cost": "10 po", "weight": 10},
+    {"name": "Cota de Malla", "category": "Armadura", "ac": "16", "cost": "75 po", "weight": 55},
+    {"name": "Escudo", "category": "Armadura", "ac": "+2", "cost": "10 po", "weight": 6}
   ],
   "items": [
     {"name": "Mochila", "category": "Equipo", "cost": "2 po", "weight": 5},
-    {"name": "Raciones (1 día)", "category": "Equipo", "cost": "5 pp", "weight": 2},
+    {"name": "Raciones", "category": "Equipo", "cost": "5 pp", "weight": 2},
     {"name": "Odre", "category": "Equipo", "cost": "1 po", "weight": 5},
-    {"name": "Antorcha", "category": "Equipo", "cost": "1 pc", "weight": 1},
-    {"name": "Cuerda de Cáñamo (50 pies)", "category": "Equipo", "cost": "1 po", "weight": 10},
-    {"name": "Libro de Conjuros", "category": "Mágico", "cost": "50 po", "weight": 3},
-    {"name": "Foco Arcano", "category": "Mágico", "cost": "20 po", "weight": 1},
-    {"name": "Herramientas de ladrón", "category": "Herramienta", "cost": "25 po", "weight": 1},
-    {"name": "Lira", "category": "Instrumento", "cost": "30 po", "weight": 2},
-    {"name": "Símbolo Sagrado", "category": "Religioso", "cost": "5 po", "weight": 1}
-  ],
-  "trinkets": [
-    {"name": "Ojo de cristal", "category": "Baratija", "weight": 0.1},
-    {"name": "Papel quemado", "category": "Baratija", "weight": 0.1},
-    {"name": "Llave antigua", "category": "Baratija", "weight": 0.1}
+    {"name": "Foco Arcano", "category": "Equipo", "cost": "20 po", "weight": 1},
+    {"name": "Símbolo Sagrado", "category": "Equipo", "cost": "5 po", "weight": 1},
+    {"name": "Libro de Conjuros", "category": "Equipo", "cost": "50 po", "weight": 3},
+    {"name": "Herramientas de ladrón", "category": "Equipo", "cost": "25 po", "weight": 1},
+    {"name": "Lira", "category": "Equipo", "cost": "30 po", "weight": 2}
   ]
 }
