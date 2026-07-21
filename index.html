@@ -19,12 +19,19 @@
         .stat-input-group label { font-size: 0.7rem; display: block; margin-bottom: 5px; color: var(--gold); }
         .stat-input-group input { text-align: center; padding: 8px; font-size: 1rem; width: 100%; }
         #role-indicator { position: fixed; top: 85px; left: 20px; font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; background: #222; border: 1px solid var(--gold-muted); color: var(--gold); z-index: 900; }
+        
+        /* Encounter UI */
+        .encounter-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .btn-encounter { background: #1a1a1a; border: 1px solid var(--gold); color: white; padding: 15px; border-radius: 10px; font-family: 'Cinzel'; cursor: pointer; font-size: 0.9rem; }
+        .btn-encounter:active { background: var(--gold); color: black; }
+        .monster-result-card { background: #0a0a0a; border: 1px solid #333; border-left: 5px solid #b30000; padding: 20px; border-radius: 8px; text-align: left; margin-top: 20px; }
+        
         .search-bar { background: #111; border: 1px solid var(--gold); border-radius: 10px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .search-bar input { background: transparent; border: none; color: white; width: 100%; outline: none; }
-        #monster-search-results { max-height: 300px; overflow-y: auto; margin-bottom: 20px; }
     </style>
 </head>
 <body>
+    <!-- LOBBY PRINCIPAL -->
     <div id="lobby-overlay">
         <div class="lobby-content">
             <h1 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem; margin-bottom: 10px;">Grimorio Pro</h1>
@@ -34,51 +41,64 @@
         </div>
     </div>
 
+    <!-- TABLÓN GLOBAL -->
     <div id="global-board-overlay">
         <div style="max-width: 500px; margin: 0 auto; width: 100%;">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 30px;"><h2 style="font-family: 'Cinzel'; color: var(--gold);">Mesas de Juego</h2><i class="fa-solid fa-xmark" onclick="toggleGlobalBoard(false)" style="color: var(--gold); font-size: 1.5rem; cursor:pointer;"></i></div>
-            <div class="card" style="border-style: dashed;"><h3>Publicar Anuncio</h3><select id="global-notice-type"><option value="lfm">BUSCO JUGADORES (Master)</option><option value="lfg">BUSCO MIS (Jugador)</option></select><input type="text" id="global-notice-title" placeholder="Título..."><textarea id="global-notice-content" placeholder="Descripción..."></textarea><input type="text" id="global-notice-contact" placeholder="Contacto..."><button onclick="publishGlobalNotice()" class="btn-primary">PUBLICA EN LA COMUNIDAD</button></div>
             <div id="global-notices-container"></div>
         </div>
     </div>
 
     <div id="role-indicator">MODO: <span id="current-role-text">MASTER</span></div>
     <div id="dice-overlay"><div class="dice-tray"><div style="text-align:right;"><i class="fa-solid fa-xmark" onclick="toggleDiceTray()" style="cursor:pointer; color: var(--gold);"></i></div><div id="dice-result-area">--</div><div id="dice-selected-list"></div><div class="dice-grid"><div class="dice-box" onclick="addDiceToTray(4)">d4</div><div class="dice-box" onclick="addDiceToTray(6)">d6</div><div class="dice-box" onclick="addDiceToTray(8)">d8</div><div class="dice-box" onclick="addDiceToTray(10)">d10</div><div class="dice-box" onclick="addDiceToTray(12)">d12</div><div class="dice-box" onclick="addDiceToTray(20)">d20</div><div class="dice-box" onclick="addDiceToTray(100)">d100</div><div class="dice-box" onclick="clearTray()" style="color:#ff4444;">CLR</div></div><button onclick="rollAllDice()" class="btn-primary" style="background: var(--gold); color: black;">LANZAR DADOS</button></div></div>
+    
     <header><h1>Grimoire Pro</h1><i class="fa-solid fa-dice-d20 dice-launcher-header" onclick="toggleDiceTray()"></i></header>
 
     <div class="container">
+        <!-- Dashboard -->
         <div id="tab-home" class="tab-content">
             <div class="card"><h2 id="campaign-title-display">Campaña</h2><div style="margin: 20px 0;"><label>TU ROL:</label><select id="role-selector" onchange="changeRole()"><option value="master">DUNGEON MASTER</option><option value="adventurer">AVENTURERO</option></select></div><button onclick="exitToLobby()" style="background: #222; color: #fff; border: 1px solid #444; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold;">SALIR AL LOBBY</button></div>
         </div>
 
+        <!-- Pestaña de Batalla -->
         <div id="tab-combat" class="tab-content">
             <div class="card">
-                <h2>Tablero de Guerra</h2>
-                <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="monster-search-input" placeholder="Buscar monstruo SRD..." onkeyup="searchMonsters()"></div>
+                <h2>Tablero de Batalla</h2>
+                <div class="encounter-controls">
+                    <button class="btn-encounter" onclick="generateRandomEncounter('normal')">INCURSIÓN<br><small>Nivel Grupo</small></button>
+                    <button class="btn-encounter" onclick="generateRandomEncounter('hard')" style="border-color: #ff4444;">GRAN DESAFÍO<br><small>Nivel + 1</small></button>
+                </div>
+                <div id="battle-result-area"></div>
+                <hk style="border-top:1px solid #222; margin:20px 0;">
+                <div class="search-bar"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="monster-search-input" placeholder="Buscar manual SRD..." onkeyup="searchMonsters()"></div>
                 <div id="monster-search-results"></div>
-                <hr style="border-top:1px solid #222; margin:20px 0;">
-                <p style="font-size:0.8rem; color:var(--gold);">MONSTRUOS RECIENTES</p>
-                <div id="monster-recent-list"></div>
             </div>
         </div>
 
+        <!-- Cámara de Tesoros (Se integra en Batalla luego) -->
         <div id="tab-loot" class="tab-content">
             <div class="card">
                 <h2>Cámara de Tesoros</h2>
-                <div class="form-group"><label>CR del Encuentro</label><input type="number" id="loot-cr" value="1" min="0" max="20" style="text-align:center;"></div>
-                <button onclick="generateLoot()" class="btn-primary" style="margin-bottom: 20px;">GENERAR BOTÍN</button>
-                <div id="loot-result" style="margin-bottom: 30px;"></div>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; justify-content:center;">
+                    <label style="margin:0;">¿EN GUARIDA?</label>
+                    <label class="switch"><input type="checkbox" id="is-lair-loot"><span class="slider"></span></label>
+                </div>
+                <div class="form-group"><label>Nivel de Encuentro (CR)</label><input type="number" id="loot-cr" value="1" min="0" max="20" style="text-align:center;"></div>
+                <button onclick="generateLoot()" class="btn-primary">GENERAR BOTÍN</button>
+                <div id="loot-result" style="margin-top: 30px;"></div>
             </div>
         </div>
 
         <div id="tab-community" class="tab-content">
-            <div class="card"><h2>Misiones</h2><div class="master-only"><input type="text" id="notice-title" placeholder="Título..."><textarea id="notice-content" placeholder="Descripción..."></textarea><input type="text" id="notice-reward" placeholder="Recompensa..."><button onclick="publishNotice()" class="btn-primary">CLAVAR CONTRATO</button></div><div id="notices-container"></div></div>
+            <div class="card"><h2>Misiones de la Party</h2><div class="master-only"><input type="text" id="notice-title" placeholder="Título..."><textarea id="notice-content" placeholder="Instrucciones..."></textarea><button onclick="publishNotice()" class="btn-primary">CLAVAR CONTRATO</button></div><div id="notices-container"></div></div>
         </div>
         
         <div id="tab-party" class="tab-content">
             <div class="card">
-                <h2>Héroes</h2><div id="character-list"></div>
-                <div id="create-char-section"><hr style="border: 0; border-top: 1px solid #222; margin: 25px 0;"><h3>Crear Héroe</h3><input type="text" id="char-name" placeholder="Nombre..."><div style="display:flex; gap:10px;"><select id="char-race"></select><select id="char-class"></select></div><div class="stats-grid"><div class="stat-input-group"><label>STR</label><input type="number" id="char-str" value="10"></div><div class="stat-input-group"><label>DEX</label><input type="number" id="char-dex" value="10"></div><div class="stat-input-group"><label>CON</label><input type="number" id="char-con" value="10"></div><div class="stat-input-group"><label>INT</label><input type="number" id="char-int" value="10"></div><div class="stat-input-group"><label>WIS</label><input type="number" id="char-wis" value="10"></div><div class="stat-input-group"><label>CHA</label><input type="number" id="char-cha" value="10"></div></div><select id="char-gender"></select><button onclick="createCharacter()" class="btn-primary">UNIR AL GRUPO</button></div>
+                <h2>Gremio</h2><div id="character-list"></div>
+                <div id="create-char-section"><hr style="border: 0; border-top: 1px solid #222; margin: 25px 0;"><h3>Crear Héroe</h3><input type="text" id="char-name" placeholder="Nombre..."><div style="display:flex; gap:10px;"><select id="char-race"></select><select id="char-class"></select></div>
+                <div class="form-group" style="margin-top:10px;"><label>NIVEL (1-20)</label><input type="number" id="char-level" value="1" min="1" max="20"></div>
+                <div class="stats-grid"><div class="stat-input-group"><label>STR</label><input type="number" id="char-str" value="10"></div><div class="stat-input-group"><label>DEX</label><input type="number" id="char-dex" value="10"></div><div class="stat-input-group"><label>CON</label><input type="number" id="char-con" value="10"></div><div class="stat-input-group"><label>INT</label><input type="number" id="char-int" value="10"></div><div class="stat-input-group"><label>WIS</label><input type="number" id="char-wis" value="10"></div><div class="stat-input-group"><label>CHA</label><input type="number" id="char-cha" value="10"></div></div><select id="char-gender"></select><button onclick="createCharacter()" class="btn-primary">UNIR AL GREMIO</button></div>
             </div>
         </div>
     </div>
