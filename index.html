@@ -12,17 +12,14 @@
         #lobby-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 40px 20px; overflow-y: auto; }
         .lobby-content { max-width: 500px; width: 100%; }
         #global-board-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 6000; display: none; flex-direction: column; padding: 40px 20px; overflow-y: auto; }
-        .campaign-item { background: #111; border: 1px solid var(--gold-muted); padding: 20px; margin-bottom: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .campaign-info { flex: 1; cursor: pointer; }
+        .campaign-item { background: #111; border: 1px solid var(--gold-muted); padding: 20px; margin-bottom: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .campaign-info { flex: 1; }
         #role-indicator { position: fixed; top: 85px; left: 20px; font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; background: #222; border: 1px solid var(--gold-muted); color: var(--gold); z-index: 900; }
         
-        /* Encounter UI */
         .encounter-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .btn-encounter { background: #1a1a1a; border: 1px solid var(--gold); color: white; padding: 15px; border-radius: 10px; font-family: 'Cinzel'; cursor: pointer; font-size: 0.9rem; }
         .btn-encounter:active { background: var(--gold); color: black; }
-        .monster-result-card { background: #0a0a0a; border: 1px solid #333; border-left: 5px solid #b30000; padding: 20px; border-radius: 8px; text-align: left; margin-top: 20px; }
         
-        /* Trade UI */
         #trade-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 7000; display: none; flex-direction: column; padding: 20px; overflow-y: auto; }
         .trade-container { max-width: 500px; margin: 0 auto; width: 100%; }
         .trade-box { background: #111; border: 1px solid #333; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
@@ -34,109 +31,35 @@
     </style>
 </head>
 <body>
-    <!-- LOBBY PRINCIPAL -->
     <div id="lobby-overlay">
         <div class="lobby-content">
-            <h1 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem; margin-bottom: 10px;">Grimorio Pro</h1>
+            <h1 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem; margin-bottom: 10px; text-align:center;">Grimorio Pro</h1>
             <div class="card"><h2 style="font-size: 1.4rem;">Mis Campañas</h2><div id="campaign-list"></div><button onclick="showCreateCampaign()" class="btn-primary" style="margin-top: 20px;">+ NUEVA CAMPAÑA</button></div>
-            <div id="create-campaign-form" style="display: none; margin-top: 30px;" class="card"><h3>Nueva Campaña</h3><input type="text" id="new-campaign-name" placeholder="Nombre..."><button onclick="saveCampaign()" class="btn-primary">CREAR</button></div>
+            <div id="create-campaign-form" style="display: none; margin-top: 30px;" class="card"><h3>Nueva Campaña</h3><input type="text" id="new-campaign-name" placeholder="Nombre de la aventura..."><button onclick="saveCampaign()" class="btn-primary">CREAR</button></div>
         </div>
     </div>
 
-    <!-- INTERCAMBIO (MESA DE TRUEQUE) -->
     <div id="trade-overlay">
         <div class="trade-container">
-            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="font-family: 'Cinzel'; color: var(--gold); margin: 0;">Mesa de Intercambio</h2>
-                <i class="fa-solid fa-xmark" onclick="closeTrade()" style="color: var(--gold); font-size: 1.5rem; cursor:pointer;"></i>
-            </div>
-            
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;"><h2 style="font-family: 'Cinzel'; color: var(--gold); margin: 0;">Mesa de Intercambio</h2><i class="fa-solid fa-xmark" onclick="closeTrade()" style="color: var(--gold); font-size: 1.5rem; cursor:pointer;"></i></div>
             <div id="trade-ui-content">
-                <!-- Trader 1 -->
-                <div class="trade-box">
-                    <h3 id="trader-1-name">Jugador 1</h3>
-                    <div id="trader-1-controls">
-                        <div class="form-group"><label>Oro a entregar (gp)</label><input type="number" id="trade-gold-1" oninput="updateTradeOffer(1)" placeholder="0"></div>
-                        <div class="trade-items" id="trade-items-1"></div>
-                    </div>
-                    <div id="trader-1-status" class="status-badge status-pending">⌛ Editando...</div>
-                </div>
-
-                <div style="text-align:center; margin:10px 0;"><i class="fa-solid fa-arrows-rotate" style="color:var(--gold); font-size:1.2rem;"></i></div>
-
-                <!-- Trader 2 -->
-                <div class="trade-box">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3 id="trader-2-name">Jugador 2</h3>
-                        <div id="trader-2-selector-area"></div>
-                    </div>
-                    <div id="trader-2-controls">
-                        <div class="form-group"><label>Oro a entregar (gp)</label><input type="number" id="trade-gold-2" oninput="updateTradeOffer(2)" placeholder="0"></div>
-                        <div class="trade-items" id="trade-items-2"></div>
-                    </div>
-                    <div id="trader-2-status" class="status-badge status-pending">⌛ Editando...</div>
-                </div>
-
-                <div id="trade-action-area" style="margin-top: 20px;">
-                    <button id="btn-confirm-1" onclick="confirmTradePart(1)" class="btn-primary" style="margin-bottom:10px;">CONFIRMAR MI PARTE (P1)</button>
-                    <button id="btn-confirm-2" onclick="confirmTradePart(2)" class="btn-primary" style="margin-bottom:10px;">CONFIRMAR MI PARTE (P2)</button>
-                    <button id="btn-execute-trade" onclick="executeTrade()" class="btn-primary" style="display:none; background:#008800; border-color:#00ff00;">CERRAR TRATO FINAL</button>
-                </div>
-                <p style="font-size:0.7rem; color:#666; text-align:center; margin-top:10px;">Cualquier cambio reinicia las confirmaciones por seguridad.</p>
+                <div class="trade-box"><h3 id="trader-1-name">Jugador 1</h3><div id="trader-1-controls"><div class="form-group"><label>Oro (gp)</label><input type="number" id="trade-gold-1" oninput="updateTradeOffer(1)" placeholder="0"></div><div class="trade-items" id="trade-items-1"></div></div><div id="trader-1-status" class="status-badge status-pending">⌛ Editando...</div></div>
+                <div style="text-align:center; margin:10px 0;"><i class="fa-solid fa-arrows-rotate" style="color:var(--gold);"></i></div>
+                <div class="trade-box"><div style="display:flex; justify-content:space-between; align-items:center;"><h3 id="trader-2-name">Jugador 2</h3><div id="trader-2-selector-area"></div></div><div id="trader-2-controls"><div class="form-group"><label>Oro (gp)</label><input type="number" id="trade-gold-2" oninput="updateTradeOffer(2)" placeholder="0"></div><div class="trade-items" id="trade-items-2"></div></div><div id="trader-2-status" class="status-badge status-pending">⌛ Editando...</div></div>
+                <div id="trade-action-area" style="margin-top: 20px;"><button id="btn-confirm-1" onclick="confirmTradePart(1)" class="btn-primary" style="margin-bottom:10px;">CONFIRMAR P1</button><button id="btn-confirm-2" onclick="confirmTradePart(2)" class="btn-primary" style="margin-bottom:10px;">CONFIRMAR P2</button><button id="btn-execute-trade" onclick="executeTrade()" class="btn-primary" style="display:none; background:#008800;">CERRAR TRATO FINAL</button></div>
             </div>
         </div>
     </div>
 
     <div id="role-indicator">MODO: <span id="current-role-text">MASTER</span></div>
-    
     <header><h1>Grimoire Pro</h1><i class="fa-solid fa-dice-d20 dice-launcher-header" onclick="toggleDiceTray()"></i></header>
 
     <div class="container">
-        <!-- Dashboard -->
-        <div id="tab-home" class="tab-content">
-            <div class="card"><h2 id="campaign-title-display">Campaña</h2><div style="margin: 20px 0;"><label>TU ROL:</label><select id="role-selector" onchange="changeRole()"><option value="master">DUNGEON MASTER</option><option value="adventurer">AVENTURERO</option></select></div><button onclick="exitToLobby()" style="background: #222; color: #fff; border: 1px solid #444; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold;">SALIR AL LOBBY</button></div>
-        </div>
-
-        <!-- Batalla -->
-        <div id="tab-combat" class="tab-content">
-            <div class="card">
-                <h2>Batalla</h2>
-                <div class="encounter-controls">
-                    <button class="btn-encounter" onclick="generateRandomEncounter('normal')">SUCURSIÓN</button>
-                    <button class="btn-encounter" onclick="generateRandomEncounter('hard')" style="border-color: #ff4444;">GRAN DESAFÍO</button>
-                </div>
-                <div id="battle-result-area"></div>
-            </div>
-        </div>
-
-        <!-- Oro -->
-        <div id="tab-loot" class="tab-content">
-            <div class="card">
-                <h2>Cámara de Tesoros</h2>
-                <div class="form-group"><label>Nivel de Encuentro (CR)</label><input type="number" id="loot-cr" value="1"></div>
-                <div style="margin:15px 0;"><label>¿EN GUARIDA?</label><input type="checkbox" id="is-lair-loot"></div>
-                <button onclick="generateLoot()" class="btn-primary">GENERAR BOTÍN</button>
-                <div id="loot-result" style="margin-top: 20px;"></div>
-            </div>
-        </div>
-
-        <!-- Gremio -->
-        <div id="tab-party" class="tab-content">
-            <div class="card">
-                <h2>Gremio</h2>
-                <div id="character-list"></div>
-                <hr style="border-top:1px solid #222; margin:20px 0;">
-                <h3>Nuevo Héroe</h3>
-                <input type="text" id="char-name" placeholder="Nombre...">
-                <div style="display:flex; gap:10px; margin:10px 0;">
-                    <select id="char-race"></select>
-                    <select id="char-class"></select>
-                </div>
-                <button onclick="createCharacter()" class="btn-primary">UNIR AL GREMIO</button>
-            </div>
-        </div>
+        <div id="tab-home" class="tab-content"><div class="card"><h2 id="campaign-title-display">Campaña</h2><div style="margin: 20px 0;"><label>TU ROL:</label><select id="role-selector" onchange="changeRole()"><option value="master">DUNGEON MASTER</option><option value="adventurer">AVENTURERO</option></select></div><button onclick="exitToLobby()" style="background: #222; color: #fff; border: 1px solid #444; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold;">SALIR AL LOBBY</button></div></div>
+        <div id="tab-combat" class="tab-content"><div class="card"><h2>Batalla</h2><div class="encounter-controls"><button class="btn-encounter" onclick="generateRandomEncounter('normal')">INCURSIÓN</button><button class="btn-encounter" onclick="generateRandomEncounter('hard')" style="border-color: #ff4444;">GRAN DESAFÍO</button></div><div id="battle-result-area"></div></div></div>
+        <div id="tab-loot" class="tab-content"><div class="card"><h2>Cámara de Tesoros</h2><div class="form-group"><label>Nivel (CR)</label><input type="number" id="loot-cr" value="1"></div><div style="margin:15px 0;"><label>¿EN GUARIDA?</label><input type="checkbox" id="is-lair-loot"></div><button onclick="generateLoot()" class="btn-primary">GENERAR BOTÍN</button><div id="loot-result" style="margin-top: 20px;"></div></div></div>
+        <div id="tab-party" class="tab-content"><div class="card"><h2>Gremio</h2><div id="character-list"></div><hr style="border-top:1px solid #222; margin:20px 0;"><h3>Nuevo Héroe</h3><input type="text" id="char-name" placeholder="Nombre..."><div style="display:flex; gap:10px; margin:10px 0;"><select id="char-race"></select><select id="char-class"></select></div><button onclick="createCharacter()" class="btn-primary">UNIR AL GREMIO</button></div></div>
     </div>
-
     <nav id="main-nav"></nav>
     <script src="app.js"></script>
 </body>
