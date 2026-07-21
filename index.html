@@ -28,7 +28,7 @@
         .trade-box { background: #111; border: 1px solid #333; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
         .trade-box h3 { margin-top:0; color: var(--gold); font-size: 1rem; }
         .trade-items { max-height: 120px; overflow-y: auto; font-size: 0.85rem; margin-top: 10px; background: #0a0a0a; padding: 8px; border-radius: 4px; border: 1px solid #222; }
-        .status-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; display: inline-bock; margin-top: 5px; }
+        .status-badge { font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; display: inline-block; margin-top: 5px; }
         .status-pending { background: #444; color: #aaa; }
         .status-ready { background: #006600; color: #00ff00; }
     </style>
@@ -39,7 +39,7 @@
         <div class="lobby-content">
             <h1 style="font-family: 'Cinzel'; color: var(--gold); font-size: 2.5rem; margin-bottom: 10px;">Grimorio Pro</h1>
             <div class="card"><h2 style="font-size: 1.4rem;">Mis Campa√±as</h2><div id="campaign-list"></div><button onclick="showCreateCampaign()" class="btn-primary" style="margin-top: 20px;">+ NUEVA CAMPA√ëA</button></div>
-            <div id="create-campaign-form" style="display: none; margin-top: 30px;" class="card"><h3>Nueva CAMPAG√DO</h3><input type="text" id="new-campaign-name" placeholder="Nombre..."><button onclick="saveCampaign()" class="btn-primary">CREAE</button></div>
+            <div id="create-campaign-form" style="display: none; margin-top: 30px;" class="card"><h3>Nueva Campa√±a</h3><input type="text" id="new-campaign-name" placeholder="Nombre..."><button onclick="saveCampaign()" class="btn-primary">CREAR</button></div>
         </div>
     </div>
 
@@ -49,33 +49,92 @@
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="font-family: 'Cinzel'; color: var(--gold); margin: 0;">Mesa de Intercambio</h2>
                 <i class="fa-solid fa-xmark" onclick="closeTrade()" style="color: var(--gold); font-size: 1.5rem; cursor:pointer;"></i>
-            <div>
+            </div>
             
-            <div id="ù…Öëîµ’§µçΩπ—ïπ–à¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÑ¥¥ÅQ…Öëï»ÄƒÄ¥¥¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒë•ÿÅç±ÖÕÃÙâ—…ÖëîµâΩ‡à¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒ†ÃÅ•êÙâ—…Öëï»¥ƒµπÖµîà˘)’ùÖëΩ»ÄƒΩ†Ã¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒë•ÿÅ•êÙâ—…Öëï»¥ƒµçΩπ—…Ω±Ãà¯(ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÒë•ÿÅç±ÖÕÃÙâôΩ…¥µù…Ω’¿à¯Ò±Öâï∞˘=…ºVÁG&Vv"Üwì¬ˆ∆&V√„∆ñÁWBGóS“&ÁV÷&W""ñC“'G&FR÷vˆ∆B”"ˆ‚÷ñÁWC“'WFFUG&FTˆffW"Éí"∆6VÜˆ∆FW#“##„¬ˆFóc‡¢∆Fób6∆73“'G&FR÷óFV◊2"ñC“'G&FR‘óFV◊2”#„¬ˆFóc‡¢¬ˆFóc‡¢∆FóbñC“'G&FW"”◊7FGW2"6∆73“'7FGW2÷&FvR7FGW2◊VÊFñÊr#Ó(…≤VFóFÊFÚ‚‚„¬ˆFóc‡¢¬ˆFóc‡†¢∆Fób7Gñ∆S“'FWáB÷∆ñv„¶6VÁFW#≤÷&vñ„£Ç≤#„∆í6∆73“&f◊6ˆ∆ñBf÷'&˜w2◊&˜FFR"7Gñ∆S“&6ˆ∆˜#ßf"Ç“÷vˆ∆Bì≤fˆÁB◊6ó¶S£„'&V”≤#„¬ˆì„¬ˆFóc‡†¢¬““G&FW""“”‡¢∆Fób6∆73“'G&FR÷&˜Ç#‡¢∆Fób7Gñ∆S“&Fó7∆ì¶f∆WÉ≤ßW7Fñgí÷6ˆÁFVÁCß76R÷&WGvVV„≤∆ñv‚÷óFV◊3¶6VÁFW#≤#‡¢∆É2ñC“'G&FW"”"÷Ê÷R#‰ßVvF˜"#¬ˆÉ3‡¢∆FóbñC“'G&FW"”"◊6V∆V7F˜"÷&V#„¬ˆFóc‡¢¬ˆFóc‡¢∆FóbñC“'G&FW"”"÷6ˆÁG&ˆ«2#‡¢∆Fób6∆73“&f˜&“÷w&˜W#„∆∆&V√‰˜&H[ùôYÿ\à
-‹
-O€Xô[è[ú]\OHõù[Xô\ààYHùòYKY€€Làà€ãZ[ú]Hù\]UòYSŸôô\ääHàXŸZ€\èHåèèŸ]èÇà]à€\‹œHùòYKZ][\»àYHùòYKR][\ÀLàèèŸ]èÇàŸ]èÇà]àYHùòY\ãLã\›]\»à€\‹œHú›]\ÀXòYŸH›]\À\[ô[ô»è∏£&»Y][ôÀããèŸ]èÇàŸ]èÇÇà]àYHùòYKXX›[€ãX\ôXHà›[OHõX\ô⁄[ã]‹àå»èÇàù]€àYHòùãX€€ôö\õKLHà€ò€X⁄œHò€€ôö\õUòYT\ù
-JHà€\‹œHòùã\ö[X\ûWà›[OHõX\ô⁄[ãXõ›€NåL»èê””ëíTìPTàRHTïH
-JOÿù]€èÇàù]€àYHòùãX€€ôö\õKLàà€ò€X⁄œHò€€ôö\õUòYT\ù
-äHà€\‹œHòùã\ö[X\ûHà›[OHõX\ôÿß-bottom:10px;">CONFIRMAR MI PARTE (P2)</button>
+            <div id="trade-ui-content">
+                <!-- Trader 1 -->
+                <div class="trade-box">
+                    <h3 id="trader-1-name">Jugador 1</h3>
+                    <div id="trader-1-controls">
+                        <div class="form-group"><label>Oro a entregar (gp)</label><input type="number" id="trade-gold-1" oninput="updateTradeOffer(1)" placeholder="0"></div>
+                        <div class="trade-items" id="trade-items-1"></div>
+                    </div>
+                    <div id="trader-1-status" class="status-badge status-pending">‚åõ Editando...</div>
+                </div>
+
+                <div style="text-align:center; margin:10px 0;"><i class="fa-solid fa-arrows-rotate" style="color:var(--gold); font-size:1.2rem;"></i></div>
+
+                <!-- Trader 2 -->
+                <div class="trade-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 id="trader-2-name">Jugador 2</h3>
+                        <div id="trader-2-selector-area"></div>
+                    </div>
+                    <div id="trader-2-controls">
+                        <div class="form-group"><label>Oro a entregar (gp)</label><input type="number" id="trade-gold-2" oninput="updateTradeOffer(2)" placeholder="0"></div>
+                        <div class="trade-items" id="trade-items-2"></div>
+                    </div>
+                    <div id="trader-2-status" class="status-badge status-pending">‚åõ Editando...</div>
+                </div>
+
+                <div id="trade-action-area" style="margin-top: 20px;">
+                    <button id="btn-confirm-1" onclick="confirmTradePart(1)" class="btn-primary" style="margin-bottom:10px;">CONFIRMAR MI PARTE (P1)</button>
+                    <button id="btn-confirm-2" onclick="confirmTradePart(2)" class="btn-primary" style="margin-bottom:10px;">CONFIRMAR MI PARTE (P2)</button>
                     <button id="btn-execute-trade" onclick="executeTrade()" class="btn-primary" style="display:none; background:#008800; border-color:#00ff00;">CERRAR TRATO FINAL</button>
                 </div>
-                <p style="font-size:0.7rem; color:#666; text-align-center; margin-top:10px;">Cualquier cambio reinicia las confirmaciones por seguridad.</p>
+                <p style="font-size:0.7rem; color:#666; text-align:center; margin-top:10px;">Cualquier cambio reinicia las confirmaciones por seguridad.</p>
             </div>
         </div>
     </div>
 
     <div id="role-indicator">MODO: <span id="current-role-text">MASTER</span></div>
     
-    <header><h1>Grimoire Pro</h1><i class="fa-solid fa-dice-d20 dice-luncher-header" onclick="toggleDiceTray()"></i></header>
+    <header><h1>Grimoire Pro</h1><i class="fa-solid fa-dice-d20 dice-launcher-header" onclick="toggleDiceTray()"></i></header>
 
     <div class="container">
+        <!-- Dashboard -->
         <div id="tab-home" class="tab-content">
             <div class="card"><h2 id="campaign-title-display">Campa√±a</h2><div style="margin: 20px 0;"><label>TU ROL:</label><select id="role-selector" onchange="changeRole()"><option value="master">DUNGEON MASTER</option><option value="adventurer">AVENTURERO</option></select></div><button onclick="exitToLobby()" style="background: #222; color: #fff; border: 1px solid #444; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold;">SALIR AL LOBBY</button></div>
         </div>
-        <div id="tab-combat" class="tab-content"><div class="card"><h2>Batalla</h2><div class="encounter-controls"><button class="btn-encounter" onclick="generateRandomEncounter('normal')">INCURSI√ìN</button><button class="btn-encounter" onclick="generateRandomEncounter('hard')" style="border-color: #ff4444;">GRAN DESAF√çO</button></div><div id="battle-result-area"></div></div></div>
-        <div id="tab-loot" class="tab-content"><div class="card"><h2>C√°mara de Tesoros</h2><div class="form-group"><label>Nivel de Encuentro (CR)</label><input type="number" id="loot-cr" value="1"></div><div style=\"margin:15px 0;\"><label>¬øEN GUARIDA?</label><input type="checkbox" id="is-lair-loot"></div><button onclick="generateLoot()" class="btn-primary">GENERAR BOT√çN</button><div id="loot-result" style=\"margin-top: 20px;\"></div></div></div>
-        <div id="tab-party" class="tab-content"><div class="card"><h2>Gremio</h2><div id="character-list"></div><hr style="border-top:1px solid #222; margin:20px 0;"><h3>Nuevo H√©roe</h3><input type="text" id="char-name" placeholder="Nombre..."><div style="display:flex; gap:10px; margin:10px 0;"><select id="char-race"></select><select id="char-class"></select></div><button onclick="createCharacter()" class="btn-primary">UNIR AL GREMIO</button></div></div>
 
+        <!-- Batalla -->
+        <div id="tab-combat" class="tab-content">
+            <div class="card">
+                <h2>Batalla</h2>
+                <div class="encounter-controls">
+                    <button class="btn-encounter" onclick="generateRandomEncounter('normal')">SUCURSI√ìN</button>
+                    <button class="btn-encounter" onclick="generateRandomEncounter('hard')" style="border-color: #ff4444;">GRAN DESAF√çO</button>
+                </div>
+                <div id="battle-result-area"></div>
+            </div>
+        </div>
+
+        <!-- Oro -->
+        <div id="tab-loot" class="tab-content">
+            <div class="card">
+                <h2>C√°mara de Tesoros</h2>
+                <div class="form-group"><label>Nivel de Encuentro (CR)</label><input type="number" id="loot-cr" value="1"></div>
+                <div style="margin:15px 0;"><label>¬øEN GUARIDA?</label><input type="checkbox" id="is-lair-loot"></div>
+                <button onclick="generateLoot()" class="btn-primary">GENERAR BOT√çN</button>
+                <div id="loot-result" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <!-- Gremio -->
+        <div id="tab-party" class="tab-content">
+            <div class="card">
+                <h2>Gremio</h2>
+                <div id="character-list"></div>
+                <hr style="border-top:1px solid #222; margin:20px 0;">
+                <h3>Nuevo H√©roe</h3>
+                <input type="text" id="char-name" placeholder="Nombre...">
+                <div style="display:flex; gap:10px; margin:10px 0;">
+                    <select id="char-race"></select>
+                    <select id="char-class"></select>
+                </div>
+                <button onclick="createCharacter()" class="btn-primary">UNIR AL GREMIO</button>
+            </div>
+        </div>
     </div>
 
     <nav id="main-nav"></nav>
