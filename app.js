@@ -13,6 +13,20 @@ function saveAll() {
     localStorage.setItem('dnd_role', currentRole);
 }
 
+// --- UTILIDADES ---
+function normalizeText(text) {
+    const numbers = { 'cero':0, 'uno':1, 'dos':2, 'tres':3, 'cuatro':4, 'cinco':5, 'seis':6, 'siete':7, 'ocho':8, 'nueve':9, 'diez':10 };
+    let clean = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (let [word, val] of Object.entries(numbers)) { clean = clean.replace(new RegExp(word, 'g'), val); }
+    return clean;
+}
+
+function isSpam(text) {
+    const clean = normalizeText(text);
+    const digits = clean.replace(/[^0-9]/g, '');
+    return digits.length >= 7; // Probable número telefónico
+}
+
 // --- MODAL SYSTEM ---
 function openModal(html) {
     const overlay = document.getElementById('modal-overlay');
@@ -24,34 +38,74 @@ function closeModal() { document.getElementById('modal-overlay').style.display =
 
 // --- LOBBY ---
 function init() {
-    renderCampaignList();
-    renderGlobalBoard();
-    if (currentCampaignId) {
-        selectCampaign(currentCampaignId);
-    }
+    renderLobby();
     loadSRDData();
+    if (currentCampaignId) selectCampaign(currentCampaignId);
 }
 
-function renderCampaignList() {
-    const container = document.getElementById('campaign-list');
+function renderLobby() {
+    const container = document.getElementById('lobby-overlay');
     if (!container) return;
-    if (campaigns.length === 0) {
-        container.innerHTML = '<p style="color:#444; font-style:italic; text-align:center;">No hay aventuras creadas.</p>';
-        return;
-    }
     
-    container.innerHTML = campaigns.map(c => `
-        <div class="campaign-item">
-            <div onclick="window.selectCampaign('${c.id}')" style="flex:1; cursor:pointer;">
-                <h3 style="margin:0;">${c.name}</h3>
-                <p style="margin:0; font-size:0.7rem; color:#666;">${(c.party || []).length} Héroes activos</p>
+    // Header
+    container.innerHTML = `
+        <header style="padding:40px 20px; text-align:center;">
+            <h1 style="font-size:3rem; margin:0; letter-spacing:4px;">GRIMOIRE PRO</h1>
+            <p style="color:var(--gold-muted); font-style:italic;">Asistente para Dungeon Masters</p>
+        </header>
+        <div style="max-width:700px; margin:0 auto; padding:0 20px;">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h2 class="cinzel">Tablón Global</h2>
+                    <button onclick="window.openGlobalNoticeModal()" class="btn-secondary" style="font-size:0.8rem;">+ ANUNCIO PP</button>
+                </div>
+                <div id="global-board" style="max-height:250px; overflow-y:auto; background:#000; padding:15px; border-radius:8px;"></div>
             </div>
-            <div style="display:flex; gap:15px; font-size:1.2rem;">
-                <i class="fa-solid fa-pen-to-square" onclick="window.showCampaignForm('${c.id}')" style="color:var(--gold); cursor:pointer;"></i>
-                <i class="fa-solid fa-trash" onclick="window.confirmDeleteCampaign('${c.id}')" style="color:var(--danger); cursor:pointer;"></i>
+
+            <div class="card">
+                <h2 class="cinzel">Mis Campañas (Master)</h2>
+                <div id="master-campaigns"></div>
+                <button onclick="window.showCampaignForm()" class="btn-primary" style="margin-top:20px;">INICIAR NUEVA AVENTURA</button>
+            </div>
+
+            <div class="card">
+                <h2 class="cinzel">Mis Aventuras (Jugador)</h2>
+                <div id="player-campaigns"></div>
             </div>
         </div>
-    `).join('');
+    `;
+    renderGlobalBoard();
+    renderCampaignLists();
+}
+
+function renderCampaignLists() {
+    const mContainer = document.getElementById('master-campaigns');
+    const pContainer = document.getElementById('player-campaigns');
+    
+    const masterCamps = campaigns; // Por ahora simplificamos, en el futuro esto se filtra por ID de usuario
+    
+    if (masterCamps.length === 0) {
+        mContainer.innerHTML = '<p style="color:#444; font-style:italic; text-align:center;">No eres Master en ninguna campaña.</p>';
+    } else {
+        mContainer.innerHTML = masterCamps.map(c => renderCampaignItem(c, 'master')).join('');
+    }
+    
+    pContainer.innerHTML = '<p style="color:#444; font-style:italic; text-align:center;">No tienes invitaciones activas.</p>';
+}
+
+function renderCampaignItem(c, role) {
+    return `
+        <div class="campaign-item">
+            <div onclick="window.selectCampaign('${c.id}', '${role}')" style="flex:1; cursor:pointer;">
+                <h3 style="margin:0; color:var(--gold);">${c.name}</h3>
+                <p style="margin:0; font-size:0.8rem; color:#666;">${(c.party || []).length} Héroes • ${role.toUpperCase()}</p>
+            </div>
+            <div style="display:flex; gap:20px; font-size:1.4rem;">
+                <i class="fa-solid fa-pen-to-square" onclick="event.stopPropagation(); window.showCampaignForm('${c.id}')" style="color:var(--gold); cursor:pointer;"></i>
+                <i class="fa-solid fa-trash" onclick="event.stopPropagation(); window.confirmDeleteCampaign('${c.id}')" style="color:var(--danger); cursor:pointer;"></i>
+            </div>
+        </div>
+    `;
 }
 
 function showCampaignForm(id = null) {
@@ -60,7 +114,7 @@ function showCampaignForm(id = null) {
         <h2 class="cinzel">${id ? 'Editar' : 'Nueva'} Campaña</h2>
         <input type="text" id="form-camp-name" value="${camp ? camp.name : ''}" placeholder="Nombre de la aventura...">
         <button onclick="window.saveCampaign('${id || ''}')" class="btn-primary">GUARDAR</button>
-        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:10px; width:100%;">CANCELAR</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CANCELAR</button>
     `);
 }
 
@@ -73,45 +127,91 @@ function saveCampaign(id) {
     } else {
         campaigns.push({ id: 'camp_' + Date.now(), name, party: [], notices: [] });
     }
-    saveAll(); renderCampaignList(); closeModal();
+    saveAll(); renderLobby(); closeModal();
 }
 
 function confirmDeleteCampaign(id) {
     const camp = campaigns.find(c => c.id === id);
     openModal(`
         <h2 class="cinzel" style="color:var(--danger);">¿Borrar Aventura?</h2>
-        <p>Se eliminará "${camp.name}" y todos sus datos.</p>
+        <p style="text-align:center;">Se eliminará "${camp.name}" y todos sus datos permanentemente.</p>
         <button onclick="window.deleteCampaign('${id}')" class="btn-primary">BORRAR</button>
-        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:10px; width:100%;">CANCELAR</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CANCELAR</button>
     `);
 }
 
 function deleteCampaign(id) {
     campaigns = campaigns.filter(c => c.id !== id);
     if (currentCampaignId === id) currentCampaignId = null;
-    saveAll(); renderCampaignList(); closeModal();
+    saveAll(); renderLobby(); closeModal();
 }
 
-function selectCampaign(id) {
+function selectCampaign(id, role = 'master') {
     const camp = campaigns.find(c => c.id === id);
     if (!camp) return;
     currentCampaignId = id;
+    currentRole = role;
+    saveAll();
     document.getElementById('lobby-overlay').style.display = 'none';
     document.getElementById('role-indicator').style.display = 'inline-block';
+    document.getElementById('role-indicator').innerHTML = `MODO: <span id="role-text">${role.toUpperCase()}</span>`;
     document.getElementById('campaign-title').innerText = camp.name;
-    applyRoleUI(); renderNavigation(); renderLocalBoard(); showTab('tab-home');
+    
+    renderMasterEye();
+    renderNavigation();
+    renderLocalBoard();
+    showTab('tab-home');
 }
 
-function exitToLobby() { currentCampaignId = null; saveAll(); location.reload(); }
+function renderMasterEye() {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp || currentRole !== 'master') {
+        const eye = document.getElementById('master-eye');
+        if (eye) eye.style.display = 'none';
+        return;
+    }
+    
+    let totals = { cp:0, sp:0, ep:0, gp:0, pp:0 };
+    camp.party.forEach(p => {
+        totals.cp += p.wallet.cp || 0;
+        totals.sp += p.wallet.sp || 0;
+        totals.ep += p.wallet.ep || 0;
+        totals.gp += p.wallet.gp || 0;
+        totals.pp += p.wallet.pp || 0;
+    });
+
+    const eyeArea = document.getElementById('master-eye') || document.createElement('div');
+    eyeArea.id = 'master-eye';
+    eyeArea.style.display = 'flex';
+    eyeArea.innerHTML = `
+        <span>OJO DEL MASTER: TESORO GRUPAL</span>
+        <div style="display:flex; gap:10px;">
+            <span class="coin-cp">${totals.cp}cp</span>
+            <span class="coin-sp">${totals.sp}sp</span>
+            <span class="coin-gp">${totals.gp}gp</span>
+            <span class="coin-pp">${totals.pp}pp</span>
+        </div>
+    `;
+    if (!document.getElementById('master-eye')) document.body.prepend(eyeArea);
+}
+
+function exitToLobby() { 
+    currentCampaignId = null; 
+    saveAll(); 
+    location.reload(); 
+}
 
 // --- TABLONES ---
 function renderGlobalBoard() {
     const res = document.getElementById('global-board');
     if (!res) return;
     res.innerHTML = globalNotices.map((n) => `
-        <div style="border-bottom:1px solid #111; padding:10px 0;">
-            <p style="margin:0; color:var(--gold); font-size:0.9rem;"><b>${n.title}</b></p>
-            <p style="margin:0; font-size:0.8rem; color:#888;">${n.text}</p>
+        <div style="border-bottom:1px solid #222; padding:15px 0; ${n.pending ? 'opacity:0.5;' : ''}">
+            <div style="display:flex; justify-content:space-between;">
+                <p style="margin:0; color:var(--gold); font-family:Cinzel;"><b>${n.title}</b></p>
+                ${n.pending ? '<span style="color:orange; font-size:0.7rem;">[REVISIÓN]</span>' : ''}
+            </div>
+            <p style="margin:5px 0 0 0; font-size:0.9rem; color:#aaa;">${n.text}</p>
         </div>
     `).join('') || '<p style="color:#444; font-size:0.8rem; text-align:center;">No hay anuncios mundiales.</p>';
 }
@@ -120,9 +220,10 @@ function openGlobalNoticeModal() {
     openModal(`
         <h2 class="cinzel">Anuncio Mundial</h2>
         <input type="text" id="g-title" placeholder="Título (ej: Se buscan Jugadores)">
-        <textarea id="g-text" placeholder="Tu mensaje..." style="height:80px;"></textarea>
+        <textarea id="g-text" placeholder="Tu mensaje..." style="height:120px;"></textarea>
+        <p style="font-size:0.7rem; color:#666;">* Mensajes con números telefónicos o palabras prohibidas serán moderados.</p>
         <button onclick="window.postGlobalNotice()" class="btn-primary">PUBLICAR</button>
-        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:10px; width:100%;">VOLVER</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">VOLVER</button>
     `);
 }
 
@@ -130,8 +231,14 @@ function postGlobalNotice() {
     const title = document.getElementById('g-title').value.trim();
     const text = document.getElementById('g-text').value.trim();
     if (!title || !text) return;
-    globalNotices.unshift({ title, text, date: Date.now() });
-    if (globalNotices.length > 5) globalNotices.pop();
+    
+    const needsReview = isSpam(title) || isSpam(text);
+    globalNotices.unshift({ 
+        title, text, date: Date.now(), 
+        pending: needsReview 
+    });
+    
+    if (globalNotices.length > 20) globalNotices.pop();
     saveAll(); renderGlobalBoard(); closeModal();
 }
 
@@ -140,12 +247,30 @@ function renderLocalBoard() {
     if (!camp) return;
     const res = document.getElementById('local-board');
     res.innerHTML = (camp.notices || []).map((n, i) => `
-        <div class="card" style="background:#0a0a0a; position:relative;">
-            <h3 style="margin:0;">${n.title}</h3>
-            ${currentRole === 'master' ? `<i class="fa-solid fa-trash" onclick="window.deleteMission(${i})" style="position:absolute; top:20px; right:20px; color:var(--danger); cursor:pointer;"></i>` : ''}
-            <p style="font-size:0.9rem; white-space:pre-wrap; margin-top:10px;">${n.text}</p>
+        <div class="card" style="background:#0a0a0a; position:relative; border-left:4px solid var(--danger);">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <h3 style="margin:0;">${n.title}</h3>
+                ${currentRole === 'master' ? `<i class="fa-solid fa-trash" onclick="window.deleteMission(${i})" style="color:var(--danger); cursor:pointer;"></i>` : ''}
+            </div>
+            <p style="font-size:1.1rem; white-space:pre-wrap; margin:15px 0; color:#ccc;">${n.text}</p>
+            <div style="border-top:1px solid #222; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div id="seals-${i}">
+                    ${(n.readBy || []).map(r => `<div class="wax-seal" title="${r}"></div>`).join('')}
+                </div>
+                ${currentRole === 'adventurer' ? `<button onclick="window.markAsRead(${i})" class="btn-secondary" style="font-size:0.7rem; padding:5px 10px;">MARCAR COMO LEÍDO</button>` : ''}
+            </div>
         </div>
-    `).join('') || '<p style="color:#444; text-align:center;">Misiones vácías.</p>';
+    `).join('') || '<p style="color:#444; text-align:center;">No hay misiones activas.</p>';
+}
+
+function markAsRead(idx) {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    const n = camp.notices[idx];
+    if (!n.readBy) n.readBy = [];
+    if (!n.readBy.includes('Jugador')) { // En multi-usuario aquí iría el nombre real
+        n.readBy.push('Jugador');
+        saveAll(); renderLocalBoard();
+    }
 }
 
 function addMission() {
@@ -154,7 +279,7 @@ function addMission() {
     if (!title || !text) return;
     const camp = campaigns.find(c => c.id === currentCampaignId);
     if (!camp.notices) camp.notices = [];
-    camp.notices.unshift({ title, text });
+    camp.notices.unshift({ title, text, readBy: [] });
     saveAll(); renderLocalBoard();
     document.getElementById('mission-title').value = '';
     document.getElementById('mission-text').value = '';
@@ -173,7 +298,7 @@ function openNPCTrade(charId) {
     activeTrade = {
         charId: charId,
         giveItems: [],
-        receiveGold: 0,
+        receiveCoins: { cp:0, sp:0, ep:0, gp:0, pp:0 },
         receiveItems: [],
         p1Confirmed: false,
         p2Confirmed: false
@@ -183,27 +308,40 @@ function openNPCTrade(charId) {
 
 function renderNPCTradeUI(char) {
     openModal(`
-        <h2 class="cinzel">Trato con NPC</h2>
-        <div class="trade-grid">
-            <div class="trade-side">
-                <h3 style="color:white; font-size:0.8rem; margin-top:0;">DEDUCCIÓN (Aventurero paga)</h3>
-                <div style="max-height:100px; overflow-y:auto; font-size:0.8rem;">
-                    ${char.inventory.map((it, i) => `<div><label><input type="checkbox" onchange="window.updateNPCGive(${i})"> ${it.name}</label></div>`).join('') || 'Mochila vacía'}
+        <h2 class="cinzel" style="text-align:center;">Trato con NPC</h2>
+        <div style="display:grid; grid-template-columns: 1fr; gap:20px;">
+            <div class="card" style="margin:0; background:#000;">
+                <h3 style="font-size:0.9rem; color:white;">ENTREGA DEL AVENTURERO</h3>
+                <div style="max-height:120px; overflow-y:auto; font-size:1rem; margin-bottom:10px;">
+                    ${char.inventory.map((it, i) => `
+                        <div style="padding:5px 0;"><label><input type="checkbox" onchange="window.updateNPCGive(${i})"> ${it.name}</label></div>
+                    `).join('') || 'Mochila vacía'}
+                </div>
+                <div class="coin-grid">
+                    <div class="coin-unit"><span class="coin-cp">CP</span><span>${char.wallet.cp}</span></div>
+                    <div class="coin-unit"><span class="coin-sp">SP</span><span>${char.wallet.sp}</span></div>
+                    <div class="coin-unit"><span class="coin-gp">GP</span><span>${char.wallet.gp}</span></div>
+                    <div class="coin-unit"><span class="coin-pp">PP</span><span>${char.wallet.pp}</span></div>
                 </div>
             </div>
-            <div class="trade-side">
-                <h3 style="color:white; font-size:0.8rem; margin-top:0;">GENERACIÓN (NPC entrega)</h3>
-                <input type="number" id="npc-gold" placeholder="Oro gp..." oninput="activeTrade.receiveGold=this.value">
-                <input type="text" id="npc-item-search" placeholder="Generar ítem..." onkeyup="window.searchNPCItems()">
-                <div id="npc-search-results" style="font-size:0.7rem; color:var(--gold); margin-bottom:5px;"></div>
-                <div id="npc-pending-items" style="font-size:0.8rem; color:#aaa;"></div>
+            
+            <div class="card" style="margin:0; background:#000; border:1px solid var(--gold);">
+                <h3 style="font-size:0.9rem; color:var(--gold);">RECOMPENSA DEL NPC</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                    <input type="number" placeholder="CP" oninput="activeTrade.receiveCoins.cp=this.value">
+                    <input type="number" placeholder="GP" oninput="activeTrade.receiveCoins.gp=this.value">
+                </div>
+                <input type="text" id="npc-item-search" placeholder="Generar ítem o material..." onkeyup="window.searchNPCItems()">
+                <div id="npc-search-results" style="font-size:0.9rem; color:var(--gold); margin-bottom:10px;"></div>
+                <div id="npc-pending-items" style="font-size:0.9rem; color:#aaa;"></div>
             </div>
         </div>
-        <div style="margin-top:15px; display:flex; gap:10px;">
-            <button id="btn-npc-p1" onclick="window.confirmNPCPart(1)" class="btn-primary" style="font-size:0.7rem; background:#444;">SELLAR POR NPC</button>
-            <button id="btn-npc-p2" onclick="window.confirmNPCPart(2)" class="btn-primary" style="font-size:0.7rem; background:#444;">SELLAR POR AVENTURERO</button>
+
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button id="btn-npc-p1" onclick="window.confirmNPCPart(1)" class="btn-secondary" style="flex:1;">SELLAR NPC</button>
+            <button id="btn-npc-p2" onclick="window.confirmNPCPart(2)" class="btn-secondary" style="flex:1;">SELLAR JUGADOR</button>
         </div>
-        <button id="btn-npc-exec" onclick="window.executeNPCTrade()" class="btn-primary" style="display:none; background:var(--success); margin-top:10px;">CERRAR TRATO</button>
+        <button id="btn-npc-exec" onclick="window.executeNPCTrade()" class="btn-primary" style="display:none; margin-top:15px;">CERRAR TRATO</button>
     `);
 }
 
@@ -217,7 +355,7 @@ function searchNPCItems() {
     const res = document.getElementById('npc-search-results');
     if (q.length < 2) return res.innerHTML = '';
     const matches = [...srdData.items, ...srdData.weapons].filter(i => i.name.toLowerCase().includes(q)).slice(0, 3);
-    res.innerHTML = matches.map(m => `<div onclick="window.addNPCItem('${m.name}')" style="cursor:pointer; padding:5px; border-bottom:1px solid #222;">+ ${m.name}</div>`).join('') + `<div onclick="window.addNPCItem('${document.getElementById('npc-item-search').value}')" style="color:white; cursor:pointer; padding:5px;">+ [Manual]: ${document.getElementById('npc-item-search').value}</div>`;
+    res.innerHTML = matches.map(m => `<div onclick="window.addNPCItem('${m.name}')" style="cursor:pointer; padding:8px; border-bottom:1px solid #222;">+ ${m.name}</div>`).join('') + `<div onclick="window.addNPCItem('${document.getElementById('npc-item-search').value}')" style="color:white; cursor:pointer; padding:8px;">+ [Crear]: ${document.getElementById('npc-item-search').value}</div>`;
 }
 
 function addNPCItem(name) {
@@ -234,10 +372,17 @@ function confirmNPCPart(n) {
 function executeNPCTrade() {
     const camp = campaigns.find(c => c.id === currentCampaignId);
     const char = camp.party.find(p => p.id == activeTrade.charId);
+    
     activeTrade.giveItems.sort((a,b) => b-a).forEach(idx => char.inventory.splice(idx, 1));
-    char.wallet.gp += parseInt(activeTrade.receiveGold) || 0;
+    
+    char.wallet.cp += parseInt(activeTrade.receiveCoins.cp) || 0;
+    char.wallet.sp += parseInt(activeTrade.receiveCoins.sp) || 0;
+    char.wallet.gp += parseInt(activeTrade.receiveCoins.gp) || 0;
+    char.wallet.pp += parseInt(activeTrade.receiveCoins.pp) || 0;
+    
     activeTrade.receiveItems.forEach(name => char.inventory.push({ name, weight: 1 }));
-    saveAll(); closeModal(); renderParty();
+    
+    saveAll(); closeModal(); renderParty(); renderMasterEye();
 }
 
 // --- SRD & SEARCH ---
@@ -245,17 +390,7 @@ async function loadSRDData() {
     try {
         const response = await fetch('data/srd_data.json');
         srdData = await response.json();
-        populateSelects();
     } catch (e) { console.warn("SRD fail"); }
-}
-
-function populateSelects() {
-    const cc = document.getElementById('char-class');
-    const cr = document.getElementById('char-race');
-    if (cc && cr && srdData.classes) {
-        cc.innerHTML = srdData.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-        cr.innerHTML = srdData.races.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
-    }
 }
 
 function searchMonsters() {
@@ -263,63 +398,91 @@ function searchMonsters() {
     const res = document.getElementById('search-results');
     if (!q) return res.innerHTML = '';
     const matches = srdData.monsters.filter(m => m.name.toLowerCase().includes(q)).slice(0, 5);
-    res.innerHTML = matches.map(m => `<div onclick="window.showMonsterModal('${m.name}')" class="campaign-item" style="font-size:0.8rem; cursor:pointer;">${m.name} (CR ${m.cr})</div>`).join('');
+    res.innerHTML = matches.map(m => `
+        <div onclick="window.showMonsterModal('${m.name}')" class="campaign-item" style="cursor:pointer;">
+            <span style="color:var(--gold); font-family:Cinzel;">${m.name}</span>
+            <span style="color:#666; font-size:0.8rem;">CR ${m.cr}</span>
+        </div>
+    `).join('');
 }
 
 function showMonsterModal(name) {
     const m = srdData.monsters.find(mo => mo.name === name);
     openModal(`
-        <h2 class="cinzel">${m.name}</h2>
-        <p style="color:#888;">${m.type} | CR: ${m.cr}</p>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:center;">
-            <div style="background:#000; padding:10px; border-radius:8px;">CA<br><b style="color:var(--gold);">${m.ac}</b></div>
-            <div style="background:#000; padding:10px; border-radius:8px;">Vida<br><b style="color:#ff4444;">${m.hp}</b></div>
+        <h2 class="cinzel" style="text-align:center; color:var(--gold); font-size:2rem;">${m.name}</h2>
+        <p style="text-align:center; color:#888; margin-top:-10px;">${m.type} | CR: ${m.cr}</p>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin:20px 0;">
+            <div class="card" style="margin:0; text-align:center; background:#000;">CA<br><b style="font-size:1.5rem; color:var(--gold);">${m.ac}</b></div>
+            <div class="card" style="margin:0; text-align:center; background:#000;">VIDA<br><b style="font-size:1.5rem; color:var(--danger);">${m.hp}</b></div>
         </div>
-        <button onclick="window.goToLootFromMonster('${m.cr}')" class="btn-primary" style="margin-top:20px;">DERROTADO (BOTÍN)</button>
-        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:10px; width:100%;">CERRAR</button>
+        <button onclick="window.goToLootFromMonster('${m.name}', '${m.cr}', '${m.type}')" class="btn-primary">DERROTADO (BOTÍN)</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CERRAR</button>
     `);
 }
 
-function goToLootFromMonster(cr) {
-    closeModal(); showTab('tab-loot');
-    document.getElementById('loot-cr').value = eval(cr);
-    if (eval(cr) >= 5) document.getElementById('is-lair-loot').checked = true;
+function goToLootFromMonster(name, cr, type) {
+    closeModal();
+    generateLoot(cr, type, name);
 }
 
 // --- BOTÍN ---
-function generateLoot() {
-    const cr = eval(document.getElementById('loot-cr').value) || 1;
-    const isLair = document.getElementById('is-lair-loot').checked;
-    const coins = (Math.floor(Math.random() * 20) + 10) * cr * (isLair ? 10 : 1);
-    const isFake = Math.random() < 0.12;
-    const gp = Math.floor(coins * 0.025);
+function generateLoot(crStr, type, monsterName) {
+    const cr = eval(crStr) || 1;
+    const isNature = ['beast', 'monstrosity', 'plant', 'ooze'].includes(type.toLowerCase());
     
+    let lootHtml = '';
+    let coins = { cp:0, sp:0, gp:0, pp:0 };
+    let items = [];
+    let isFake = Math.random() < 0.12;
+
+    if (isNature) {
+        items.push({ name: `Piel de ${monsterName}`, val: cr * 5 });
+        items.push({ name: `Garras/Dientes de ${monsterName}`, val: cr * 2 });
+        lootHtml = `
+            <h2 class="cinzel">Restos Naturales</h2>
+            <div class="card" style="background:#000;">
+                ${items.map(it => `• ${it.name} (${it.val} gp aprox)`).join('<br>')}
+            </div>
+        `;
+    } else {
+        coins.gp = Math.floor((Math.random() * 20 + 10) * cr);
+        lootHtml = `
+            <h2 class="cinzel">Tesoro Hallado ${isFake && currentRole === 'master' ? '⚠️' : ''}</h2>
+            <div style="text-align:center; font-size:2.5rem; margin:20px 0; color:var(--gold);">💰 ${coins.gp} gp</div>
+        `;
+    }
+
     openModal(`
-        <h2 class="cinzel">Tesoro Hallado ${isFake && currentRole === 'master' ? '⚠️' : ''}</h2>
-        <div style="text-align:center; font-size:2rem; margin:20px 0;">💰 ${gp} gp</div>
+        ${lootHtml}
         <div id="loot-assign-area">
-            <button onclick="window.assignLootToAll(${gp}, ${isFake})" class="btn-primary" style="background:#004488;">DIVIDIR ENTRE TODOS</button>
-            <p style="text-align:center; margin:10px 0; font-size:0.8rem; color:#666;">- o entregar a uno -</p>
-            <select id="loot-target" style="margin-bottom:10px;">${(campaigns.find(c => c.id === currentCampaignId).party || []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select>
-            <button onclick="window.assignLootToOne(${gp}, ${isFake})" class="btn-primary">ENTREGAR</button>
+            <label style="font-size:0.8rem;">ENTREGAR A:</label>
+            <select id="loot-target" style="margin-bottom:15px;">
+                <option value="all">Dividir entre todos</option>
+                ${(campaigns.find(c => c.id === currentCampaignId).party || []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            </select>
+            <button onclick="window.executeLootAssign(${JSON.stringify(coins)}, ${JSON.stringify(items)}, ${isFake})" class="btn-primary">REPARTIR BOTÍN</button>
         </div>
         <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">DESCARTAR</button>
     `);
 }
 
-function assignLootToAll(gp, isFake) {
+function executeLootAssign(coins, items, isFake) {
+    const target = document.getElementById('loot-target').value;
     const camp = campaigns.find(c => c.id === currentCampaignId);
-    const share = Math.floor(gp / camp.party.length);
-    camp.party.forEach(p => { if(isFake) p.wallet.gp_fake += share; else p.wallet.gp += share; });
-    saveAll(); closeModal(); renderParty();
-}
-
-function assignLootToOne(gp, isFake) {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const targetId = document.getElementById('loot-target').value;
-    const p = camp.party.find(hero => hero.id == targetId);
-    if(isFake) p.wallet.gp_fake += gp; else p.wallet.gp += gp;
-    saveAll(); closeModal(); renderParty();
+    
+    if (target === 'all') {
+        const share = Math.floor(coins.gp / camp.party.length);
+        camp.party.forEach(p => { 
+            if(isFake) p.wallet.gp_fake += share; else p.wallet.gp += share; 
+            items.forEach(it => p.inventory.push({ name: it.name, weight: 1 }));
+        });
+    } else {
+        const p = camp.party.find(h => h.id == target);
+        if(isFake) p.wallet.gp_fake += coins.gp; else p.wallet.gp += coins.gp;
+        items.forEach(it => p.inventory.push({ name: it.name, weight: 1 }));
+    }
+    
+    saveAll(); closeModal(); renderParty(); renderMasterEye();
 }
 
 // --- PARTY ---
@@ -328,26 +491,34 @@ function renderParty() {
     if (!camp) return;
     const res = document.getElementById('character-list');
     res.innerHTML = (camp.party || []).map(c => `
-        <div class="campaign-item">
-            <div onclick="window.toggleInventory(${c.id})" style="flex:1; cursor:pointer;">
-                <h3 style="margin:0;">${c.name}</h3>
-                <p style="margin:0; font-size:0.8rem; color:#888;">💰 ${c.wallet.gp + (c.wallet.gp_fake||0)} gp</p>
+        <div class="card" style="margin-bottom:15px; padding:15px;">
+            <div onclick="window.toggleInventory(${c.id})" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                <div>
+                    <h3 style="margin:0; font-size:1.2rem;">${c.name}</h3>
+                    <div class="coin-grid" style="width:180px;">
+                        <span class="coin-cp">${c.wallet.cp}</span>
+                        <span class="coin-sp">${c.wallet.sp}</span>
+                        <span class="coin-gp">${c.wallet.gp + (c.wallet.gp_fake||0)}</span>
+                        <span class="coin-pp">${c.wallet.pp}</span>
+                    </div>
+                </div>
+                ${currentRole === 'master' ? `<button onclick="event.stopPropagation(); window.openNPCTrade(${c.id})" class="btn-secondary" style="font-size:0.7rem;">TRATO NPC</button>` : ''}
             </div>
-            ${currentRole === 'master' ? `<button onclick="window.openNPCTrade(${c.id})" class="btn-secondary" style="font-size:0.6rem;">TRATO NPC</button>` : ''}
-            <div id="inv-${c.id}" style="display:none; width:100%; margin-top:10px; background:#000; padding:10px; border-radius:5px; font-size:0.8rem;">
-                ${c.inventory.map(it => `• ${it.name}`).join('<br>') || 'Vacía'}
-                ${(currentRole === 'master' && c.wallet.gp_fake > 0) ? `<p style="color:red; margin-top:5px;">⚠️ ORO FALSO: ${c.wallet.gp_fake} gp</p>` : ''}
+            <div id="inv-${c.id}" style="display:none; width:100%; margin-top:15px; background:#000; padding:15px; border-radius:8px; font-size:0.9rem; border:1px solid #222;">
+                <b style="color:var(--gold);">INVENTARIO:</b><br>
+                ${c.inventory.map(it => `• ${it.name}`).join('<br>') || 'Vacío'}
+                ${(currentRole === 'master' && c.wallet.gp_fake > 0) ? `<p style="color:#ff4444; margin-top:10px; border-top:1px solid #444; padding-top:5px;">⚠️ ORO FALSO DETECTADO: ${c.wallet.gp_fake} gp</p>` : ''}
             </div>
         </div>
-    `).join('') || '<p style="color:#444; text-align:center;">No hay héroes.</p>';
+    `).join('') || '<p style="color:#444; text-align:center;">No hay héroes registrados.</p>';
 }
 
 function showCharForm() {
     openModal(`
         <h2 class="cinzel">Nuevo Héroe</h2>
-        <input type="text" id="form-char-name" placeholder="Nombre...">
+        <input type="text" id="form-char-name" placeholder="Nombre del aventurero...">
         <button onclick="window.createCharacter()" class="btn-primary">CREAR PERSONAJE</button>
-        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:10px; width:100%;">CANCELAR</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CANCELAR</button>
     `);
 }
 
@@ -357,9 +528,9 @@ function createCharacter() {
     const camp = campaigns.find(c => c.id === currentCampaignId);
     camp.party.push({
         id: Date.now(), name, level: 1, inventory: [],
-        wallet: { gp: 0, gp_fake: 0, sp: 0, sp_fake: 0, cp: 0, cp_fake: 0 }
+        wallet: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0, gp_fake: 0 }
     });
-    saveAll(); renderParty(); closeModal();
+    saveAll(); renderParty(); renderMasterEye(); closeModal();
 }
 
 function toggleInventory(id) {
@@ -373,6 +544,8 @@ function showTab(t) {
     const target = document.getElementById(t);
     if (target) target.style.display = 'block';
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    const activeBtn = Array.from(document.querySelectorAll('nav button')).find(b => b.innerText.toLowerCase().includes(t.replace('tab-','')));
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
 function renderNavigation() {
@@ -380,28 +553,10 @@ function renderNavigation() {
     document.getElementById('main-nav').innerHTML = `
         <button onclick="window.showTab('tab-home')"><i class="fa-solid fa-house"></i><span>Home</span></button>
         ${isM ? `<button onclick="window.showTab('tab-combat')"><i class="fa-solid fa-bolt"></i><span>Batalla</span></button>` : ''}
-        ${isM ? `<button onclick="window.showTab('tab-loot')"><i class="fa-solid fa-coins"></i><span>Oro</span></button>` : ''}
+        ${isM ? `<button onclick="window.showTab('tab-botin')"><i class="fa-solid fa-coins"></i><span>Botín</span></button>` : ''}
         <button onclick="window.showTab('tab-notices')"><i class="fa-solid fa-bullhorn"></i><span>Misiones</span></button>
         <button onclick="window.showTab('tab-party')"><i class="fa-solid fa-users"></i><span>Gremio</span></button>
     `;
-}
-
-function applyRoleUI() {
-    document.getElementById('role-text').innerText = currentRole.toUpperCase();
-}
-
-function changeRole() {
-    currentRole = document.getElementById('role-selector').value;
-    saveAll(); applyRoleUI(); renderNavigation(); renderParty(); renderLocalBoard();
-}
-
-function generateEncounter(mode) {
-    const apl = 1;
-    const target = mode === 'hard' ? apl + 1 : apl;
-    const matches = srdData.monsters.filter(mo => eval(mo.cr) == target);
-    if (matches.length === 0) return alert("No hay monstruos de ese CR.");
-    const res = matches[Math.floor(Math.random() * matches.length)];
-    window.showMonsterModal(res.name);
 }
 
 // --- INIT ---
@@ -420,13 +575,10 @@ window.openGlobalNoticeModal = openGlobalNoticeModal;
 window.postGlobalNotice = postGlobalNotice;
 window.addMission = addMission;
 window.deleteMission = deleteMission;
-window.generateEncounter = generateEncounter;
 window.searchMonsters = searchMonsters;
 window.showMonsterModal = showMonsterModal;
 window.goToLootFromMonster = goToLootFromMonster;
-window.generateLoot = generateLoot;
-window.assignLootToAll = assignLootToAll;
-window.assignLootToOne = assignLootToOne;
+window.executeLootAssign = executeLootAssign;
 window.showCharForm = showCharForm;
 window.createCharacter = createCharacter;
 window.toggleInventory = toggleInventory;
@@ -436,4 +588,5 @@ window.searchNPCItems = searchNPCItems;
 window.addNPCItem = addNPCItem;
 window.confirmNPCPart = confirmNPCPart;
 window.executeNPCTrade = executeNPCTrade;
-window.changeRole = changeRole;
+window.markAsRead = markAsRead;
+window.openGlobalNoticeModal = openGlobalNoticeModal;
