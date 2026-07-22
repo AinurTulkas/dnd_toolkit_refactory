@@ -702,9 +702,11 @@ window.showJoinForm = showJoinForm;
 window.joinCampaign = joinCampaign;
 
 let currentRitualRolls = [];
+let isRedemptionMode = false;
 
 function rollForLimit() {
     currentRitualRolls = [];
+    isRedemptionMode = false;
     openDiceModal();
 }
 
@@ -712,10 +714,10 @@ function openDiceModal() {
     openModal(`
         <div class="dice-ritual-area">
             <h2 class="cinzel">Ritual de Ascenso</h2>
-            <p id="ritual-msg">Toca el dado para tu 1ª tirada</p>
-            <div id="visual-die" class="d20-visual" onclick="window.executeRitualStep()">
-                <i class="fa-solid fa-dice-d20"></i>
+            <div id="ritual-msg-container" class="ritual-msg-area" onclick="window.checkRedemptionClick()">
+                <p id="ritual-msg" style="margin:0;">Toca el dado para tu 1ª tirada</p>
             </div>
+            <div id="visual-die" class="d20-visual" onclick="window.executeRitualStep()">?</div>
             <div class="roll-history" id="ritual-history">
                 <div class="roll-dot">?</div>
                 <div class="roll-dot">?</div>
@@ -725,50 +727,66 @@ function openDiceModal() {
     `);
 }
 
-function executeRitualStep() {
-    if (currentRitualRolls.length >= 3) return;
-    
+window.checkRedemptionClick = function() {
+    if (isRedemptionMode) {
+        isRedemptionMode = false;
+        const msg = document.getElementById('ritual-msg');
+        const container = document.getElementById('ritual-msg-container');
+        const die = document.getElementById('visual-die');
+        
+        container.classList.remove('waiting');
+        msg.innerHTML = "Los dioses aceptan tu tributo...<br><b style='color:var(--gold);'>¡LANZA EL TIRO DE GRACIA!</b>";
+        die.onclick = window.executeRitualStep;
+        die.style.boxShadow = "0 0 30px var(--gold)";
+    }
+};
+
+window.executeRitualStep = function() {
     const die = document.getElementById('visual-die');
     const msg = document.getElementById('ritual-msg');
+    
     die.classList.add('rolling');
-    die.onclick = null; // Evitar spam clics
+    die.onclick = null;
     msg.innerText = "¡Lanzando!";
 
     setTimeout(() => {
-        const roll = Math.floor(Math.random() * 20) + 1;
-        currentRitualRolls.push(roll);
         die.classList.remove('rolling');
-        die.innerHTML = `<span style="font-family:Cinzel;">${roll}</span>`;
+        let roll;
+        
+        if (currentRitualRolls.length === 3) {
+            roll = 15; 
+        } else {
+            roll = Math.floor(Math.random() * 20) + 1;
+        }
+        
+        currentRitualRolls.push(roll);
+        die.innerText = roll;
         
         const dots = document.getElementById('ritual-history').children;
-        dots[currentRitualRolls.length - 1].innerText = roll;
-        dots[currentRitualRolls.length - 1].classList.add('active');
+        if (currentRitualRolls.length <= 3) {
+            dots[currentRitualRolls.length - 1].innerText = roll;
+            dots[currentRitualRolls.length - 1].classList.add('active');
+        }
+
+        let maxSoFar = Math.max(...currentRitualRolls);
 
         if (currentRitualRolls.length < 3) {
-            msg.innerText = `Resultado: ${roll}. ¡Toca para la tirada ${currentRitualRolls.length + 1}!`;
-            setTimeout(() => {
-                die.innerHTML = '<i class="fa-solid fa-dice-d20"></i>';
-                die.onclick = window.executeRitualStep;
-            }, 1000);
+            msg.innerText = `Resultado: ${roll}. ¡Toca para la siguiente!`;
+            die.onclick = window.executeRitualStep;
+        } else if (currentRitualRolls.length === 3 && maxSoFar < 15) {
+            isRedemptionMode = true;
+            const container = document.getElementById('ritual-msg-container');
+            container.classList.add('waiting');
+            msg.innerHTML = `<b style="color:#ff4444;">SUERTE ADVERSA...</b><br><span style="font-size:0.8rem;">[Toca este mensaje para pedir favor divino]</span>`;
         } else {
-            finishRitual();
+            finalizeRitual(maxSoFar);
         }
-    }, 1200);
-}
+    }, 1000);
+};
 
-function finishRitual() {
-    let maxRoll = Math.max(...currentRitualRolls);
-    let finalLimit = maxRoll;
-    let boosted = false;
-    
-    if (finalLimit < 15) {
-        finalLimit = Math.floor(Math.random() * 6) + 15;
-        boosted = true;
-    }
-
+function finalizeRitual(finalLimit) {
     userTier.level = 'master';
     userTier.maxParties = finalLimit;
-    userTier.rolls = currentRitualRolls;
     saveTier();
     renderLobby();
 
@@ -776,19 +794,17 @@ function finishRitual() {
     const die = document.getElementById('visual-die');
     
     die.style.color = "var(--gold)";
-    die.style.transform = "scale(1.5)";
-    msg.innerHTML = boosted ? 
-        `<b style="color:var(--gold);">¡INTERVENCIÓN DIVINA!</b><br>Tu suerte fue baja, los dioses te otorgan: <b>${finalLimit}</b>` : 
-        `<b style="color:var(--gold);">¡MAGNÍFICO!</b><br>Tu nuevo límite es de <b>${finalLimit} aventuras</b>.`;
+    die.style.transform = "scale(1.2)";
+    msg.innerHTML = `<b style="color:var(--gold);">¡ASCENSO COMPLETADO!</b><br>Límite: <b>${finalLimit} aventuras</b>.`;
     
     setTimeout(() => {
         openModal(`
-            <h2 class="cinzel">Ascenso Completado</h2>
-            <p style="text-align:center;">Has desbloqueado el Tier Master.</p>
+            <h2 class="cinzel">Nuevo Rango: Master</h2>
+            <p style="text-align:center;">Has desbloqueado todo el poder del Grimorio.</p>
             <div style="font-size:3.5rem; text-align:center; color:var(--gold); margin:15px 0;">🎲 ${finalLimit}</div>
-            <button onclick="window.closeModal()" class="btn-primary">RECLAMAR MI REINO</button>
+            <button onclick="window.closeModal()" class="btn-primary">ENTRAR AL TRONO</button>
         `);
-    }, 2500);
+    }, 2000);
 }
 window.executeRitualStep = executeRitualStep;
 function reclaimMaster(id) {
@@ -800,3 +816,4 @@ function reclaimMaster(id) {
     }
 }
 window.reclaimMaster = reclaimMaster;
+window.rollForLimit = rollForLimit;
