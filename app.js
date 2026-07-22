@@ -24,7 +24,15 @@ function normalizeText(text) {
 function isSpam(text) {
     const clean = normalizeText(text);
     const digits = clean.replace(/[^0-9]/g, '');
-    return digits.length >= 7; // Probable número telefónico
+    return digits.length >= 7; 
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        // En lugar de alert, usamos un feedback visual discreto si existiera, 
+        // pero por ahora el usuario no quiere alertas nativas.
+        console.log("Copiado: " + text);
+    });
 }
 
 // --- MODAL SYSTEM ---
@@ -40,14 +48,13 @@ function closeModal() { document.getElementById('modal-overlay').style.display =
 function init() {
     renderLobby();
     loadSRDData();
-    if (currentCampaignId) selectCampaign(currentCampaignId);
+    if (currentCampaignId) selectCampaign(currentCampaignId, currentRole);
 }
 
 function renderLobby() {
     const container = document.getElementById('lobby-overlay');
     if (!container) return;
     
-    // Header
     container.innerHTML = `
         <header style="padding:40px 20px; text-align:center;">
             <h1 style="font-size:3rem; margin:0; letter-spacing:4px;">GRIMOIRE PRO</h1>
@@ -57,7 +64,7 @@ function renderLobby() {
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                     <h2 class="cinzel">Tablón Global</h2>
-                    <button onclick="window.openGlobalNoticeModal()" class="btn-secondary" style="font-size:0.8rem;">+ ANUNCIO PP</button>
+                    <button onclick="window.openGlobalNoticeModal()" class="btn-secondary" style="font-size:0.8rem; border-color:var(--gold);">+ ANUNCIO PP</button>
                 </div>
                 <div id="global-board" style="max-height:250px; overflow-y:auto; background:#000; padding:15px; border-radius:8px;"></div>
             </div>
@@ -69,7 +76,10 @@ function renderLobby() {
             </div>
 
             <div class="card">
-                <h2 class="cinzel">Mis Aventuras (Jugador)</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h2 class="cinzel">Mis Aventuras (Jugador)</h2>
+                    <button onclick="window.showJoinForm()" class="btn-secondary" style="font-size:0.8rem; border-color:var(--gold);">+ UNIRSE</button>
+                </div>
                 <div id="player-campaigns"></div>
             </div>
         </div>
@@ -82,7 +92,8 @@ function renderCampaignLists() {
     const mContainer = document.getElementById('master-campaigns');
     const pContainer = document.getElementById('player-campaigns');
     
-    const masterCamps = campaigns; // Por ahora simplificamos, en el futuro esto se filtra por ID de usuario
+    const masterCamps = campaigns.filter(c => !c.isJoined);
+    const playerCamps = campaigns.filter(c => c.isJoined);
     
     if (masterCamps.length === 0) {
         mContainer.innerHTML = '<p style="color:#444; font-style:italic; text-align:center;">No eres Master en ninguna campaña.</p>';
@@ -90,22 +101,64 @@ function renderCampaignLists() {
         mContainer.innerHTML = masterCamps.map(c => renderCampaignItem(c, 'master')).join('');
     }
     
-    pContainer.innerHTML = '<p style="color:#444; font-style:italic; text-align:center;">No tienes invitaciones activas.</p>';
+    if (playerCamps.length === 0) {
+        pContainer.innerHTML = '<p style="color:#444; font-style:italic; text-align:center;">No te has unido a ninguna aventura.</p>';
+    } else {
+        pContainer.innerHTML = playerCamps.map(c => renderCampaignItem(c, 'adventurer')).join('');
+    }
 }
 
 function renderCampaignItem(c, role) {
+    const isMaster = role === 'master';
     return `
         <div class="campaign-item">
             <div onclick="window.selectCampaign('${c.id}', '${role}')" style="flex:1; cursor:pointer;">
                 <h3 style="margin:0; color:var(--gold);">${c.name}</h3>
                 <p style="margin:0; font-size:0.8rem; color:#666;">${(c.party || []).length} Héroes • ${role.toUpperCase()}</p>
             </div>
-            <div style="display:flex; gap:20px; font-size:1.4rem;">
+            <div style="display:flex; gap:20px; font-size:1.4rem; align-items:center;">
+                ${isMaster ? `<i class="fa-solid fa-share-nodes" onclick="event.stopPropagation(); window.copyInviteCode('${c.id}')" style="color:var(--gold); cursor:pointer; font-size:1.1rem;" title="Copiar Código"></i>` : ''}
                 <i class="fa-solid fa-pen-to-square" onclick="event.stopPropagation(); window.showCampaignForm('${c.id}')" style="color:var(--gold); cursor:pointer;"></i>
                 <i class="fa-solid fa-trash" onclick="event.stopPropagation(); window.confirmDeleteCampaign('${c.id}')" style="color:var(--danger); cursor:pointer;"></i>
             </div>
         </div>
     `;
+}
+
+function copyInviteCode(id) {
+    copyToClipboard(id);
+    openModal(`
+        <h2 class="cinzel" style="text-align:center;">Código Copiado</h2>
+        <p style="text-align:center;">Envía este código a tus jugadores:</p>
+        <div style="background:#000; padding:15px; border-radius:8px; text-align:center; font-family:monospace; color:var(--gold); font-size:1.2rem; border:1px solid var(--gold-muted); margin:15px 0;">
+            ${id}
+        </div>
+        <button onclick="window.closeModal()" class="btn-primary">ENTENDIDO</button>
+    `);
+}
+
+function showJoinForm() {
+    openModal(`
+        <h2 class="cinzel">Unirse a Aventura</h2>
+        <p>Pega el código que te envió tu Dungeon Master:</p>
+        <input type="text" id="join-code" placeholder="camp_123456789...">
+        <button onclick="window.joinCampaign()" class="btn-primary">UNIRSE</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CANCELAR</button>
+    `);
+}
+
+function joinCampaign() {
+    const code = document.getElementById('join-code').value.trim();
+    if (!code) return;
+    // En una app real, esto buscaría en una DB. Aquí simulamos añadiendo una campaña marcada como "unida".
+    // Para que funcione el demo, si el código existe localmente, lo marcamos. Si no, creamos una "fantasma".
+    let camp = campaigns.find(c => c.id === code);
+    if (camp) {
+        camp.isJoined = true;
+    } else {
+        campaigns.push({ id: code, name: "Aventura Invitada", party: [], notices: [], isJoined: true });
+    }
+    saveAll(); renderLobby(); closeModal();
 }
 
 function showCampaignForm(id = null) {
@@ -267,7 +320,7 @@ function markAsRead(idx) {
     const camp = campaigns.find(c => c.id === currentCampaignId);
     const n = camp.notices[idx];
     if (!n.readBy) n.readBy = [];
-    if (!n.readBy.includes('Jugador')) { // En multi-usuario aquí iría el nombre real
+    if (!n.readBy.includes('Jugador')) { 
         n.readBy.push('Jugador');
         saveAll(); renderLocalBoard();
     }
@@ -590,3 +643,6 @@ window.confirmNPCPart = confirmNPCPart;
 window.executeNPCTrade = executeNPCTrade;
 window.markAsRead = markAsRead;
 window.openGlobalNoticeModal = openGlobalNoticeModal;
+window.copyInviteCode = copyInviteCode;
+window.showJoinForm = showJoinForm;
+window.joinCampaign = joinCampaign;
