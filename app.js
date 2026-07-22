@@ -701,6 +701,16 @@ window.copyInviteCode = copyInviteCode;
 window.showJoinForm = showJoinForm;
 window.joinCampaign = joinCampaign;
 
+function reclaimMaster(id) {
+    let camp = campaigns.find(c => c.id === id);
+    if (camp) {
+        camp.isJoined = false;
+        saveAll();
+        location.reload();
+    }
+}
+window.reclaimMaster = reclaimMaster;
+
 let currentRitualRolls = [];
 let isRedemptionMode = false;
 
@@ -727,7 +737,7 @@ function openDiceModal() {
     `);
 }
 
-window.checkRedemptionClick = function() {
+function checkRedemptionClick() {
     if (isRedemptionMode) {
         isRedemptionMode = false;
         const msg = document.getElementById('ritual-msg');
@@ -739,9 +749,9 @@ window.checkRedemptionClick = function() {
         die.onclick = window.executeRitualStep;
         die.style.boxShadow = "0 0 30px var(--gold)";
     }
-};
+}
 
-window.executeRitualStep = function() {
+function executeRitualStep() {
     const die = document.getElementById('visual-die');
     const msg = document.getElementById('ritual-msg');
     
@@ -782,7 +792,7 @@ window.executeRitualStep = function() {
             finalizeRitual(maxSoFar);
         }
     }, 1000);
-};
+}
 
 function finalizeRitual(finalLimit) {
     userTier.level = 'master';
@@ -801,19 +811,15 @@ function finalizeRitual(finalLimit) {
         openModal(`
             <h2 class="cinzel">Nuevo Rango: Master</h2>
             <p style="text-align:center;">Has desbloqueado todo el poder del Grimorio.</p>
-            <div style="font-size:3.5rem; text-align:center; color:var(--gold); margin:15px 0;">🎲 ${finalLimit}</div>
-            <button onclick="window.closeModal()" class="btn-primary">ENTRAR AL TRONO</button>
+            <div style="font-size:4rem; text-align:center; color:var(--gold); margin:20px 0; display:flex; flex-direction:column; align-items:center; gap:10px;">
+                <i class="fa-solid fa-dice-d20"></i>
+                <span style="font-family:Cinzel; font-size:2.5rem;">${finalLimit}</span>
+            </div>
+            <button onclick="window.closeModal()" class="btn-primary">RECLAMAR PODER</button>
         `);
     }, 2000);
 }
-window.executeRitualStep = executeRitualStep;
-function reclaimMaster(id) {
-    let camp = campaigns.find(c => c.id === id);
-    if (camp) {
-        camp.isJoined = false;
-        saveAll();
-        location.reload(); // Fuerza el reinicio para recuperar el rol
-    }
-}
-window.reclaimMaster = reclaimMaster;
+
 window.rollForLimit = rollForLimit;
+window.executeRitualStep = executeRitualStep;
+window.checkRedemptionClick = checkRedemptionClick;
