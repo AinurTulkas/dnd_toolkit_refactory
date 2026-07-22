@@ -270,7 +270,9 @@ function exitToLobby() {
 function renderGlobalBoard() {
     const res = document.getElementById('global-board');
     if (!res) return;
-    res.innerHTML = globalNotices.map((n) => `
+    const now = Date.now();
+    const filtered = globalNotices.filter(n => (now - (n.date || 0)) < (n.expiry || 604800000));
+    res.innerHTML = filtered.map((n) => `
         <div style="border-bottom:1px solid #222; padding:15px 0; ${n.pending ? 'opacity:0.5;' : ''}">
             <div style="display:flex; justify-content:space-between;">
                 <p style="margin:0; color:var(--gold); font-family:Cinzel;"><b>${n.title}</b></p>
@@ -286,7 +288,11 @@ function openGlobalNoticeModal() {
         <h2 class="cinzel">Anuncio Mundial</h2>
         <input type="text" id="g-title" placeholder="Título (ej: Se buscan Jugadores)">
         <textarea id="g-text" placeholder="Tu mensaje..." style="height:120px;"></textarea>
-        <p style="font-size:0.7rem; color:#666;">* Mensajes con números telefónicos o palabras prohibidas serán moderados.</p>
+        <div style="margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" id="g-long" style="width:auto; margin:0;">
+            <label style="font-size:0.8rem;">DURACIÓN EXTENDIDA (30 días)</label>
+        </div>
+        <p style="font-size:0.7rem; color:#666;">* Por defecto duran 7 días. Mensajes sospechosos serán moderados.</p>
         <button onclick="window.postGlobalNotice()" class="btn-primary">PUBLICAR</button>
         <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">VOLVER</button>
     `);
@@ -298,9 +304,11 @@ function postGlobalNotice() {
     if (!title || !text) return;
     
     const needsReview = isSpam(title) || isSpam(text);
+    const isLong = document.getElementById('g-long').checked;
     globalNotices.unshift({ 
         title, text, date: Date.now(), 
-        pending: needsReview 
+        pending: needsReview,
+        expiry: isLong ? 2592000000 : 604800000 
     });
     
     if (globalNotices.length > 20) globalNotices.pop();
@@ -591,7 +599,7 @@ function createCharacter() {
     const name = document.getElementById('form-char-name').value.trim();
     if (!name) return;
     const camp = campaigns.find(c => c.id === currentCampaignId);
-    camp.party.push({
+    camp.party.push({ 
         id: Date.now(), name, level: 1, inventory: [],
         wallet: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0, gp_fake: 0 }
     });
@@ -658,4 +666,12 @@ window.openGlobalNoticeModal = openGlobalNoticeModal;
 window.copyInviteCode = copyInviteCode;
 window.showJoinForm = showJoinForm;
 window.joinCampaign = joinCampaign;
+function reclaimMaster(id) {
+    let camp = campaigns.find(c => c.id === id);
+    if (camp) {
+        camp.isJoined = false;
+        saveAll();
+        location.reload(); // Fuerza el reinicio para recuperar el rol
+    }
+}
 window.reclaimMaster = reclaimMaster;
