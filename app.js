@@ -76,6 +76,7 @@ function renderLobby() {
                 <h2 class="cinzel">Mis Campañas (Master)</h2>
                 <div id="master-campaigns"></div>
                 <button onclick="window.showCampaignForm()" class="btn-primary" style="margin-top:20px;">INICIAR NUEVA AVENTURA</button>
+                <button onclick="window.rollForLimit()" class="btn-secondary" style="margin-top:10px; width:100%; border-style:dashed; border-color:var(--gold);">[TEST] PROBAR DADO D20</button>
             </div>
 
             <div class="card">
