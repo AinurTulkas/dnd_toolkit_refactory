@@ -6,6 +6,9 @@ let currentRole = localStorage.getItem('dnd_role') || 'master';
 let srdData = { classes: [], races: [], monsters: [], items: [], weapons: [] };
 let activeTrade = null;
 
+let userTier = JSON.parse(localStorage.getItem('dnd_user_tier')) || { level: 'free', maxParties: 6, rolls: [] };
+function saveTier() { localStorage.setItem('dnd_user_tier', JSON.stringify(userTier)); }
+
 function saveAll() {
     localStorage.setItem('dnd_campaigns', JSON.stringify(campaigns));
     localStorage.setItem('dnd_global_notices', JSON.stringify(globalNotices));
@@ -174,6 +177,15 @@ function joinCampaign() {
 }
 
 function showCampaignForm(id = null) {
+    if (!id && campaigns.length >= userTier.maxParties) {
+        openModal(`
+            <h2 class="cinzel">Límite Alcanzado</h2>
+            <p style="text-align:center;">Has llegado al máximo de ${userTier.maxParties} aventuras (${userTier.level}).</p>
+            ${userTier.level === 'free' ? `<button onclick="window.rollForLimit()" class="btn-primary">MEJORAR CON DADO D20</button>` : ''}
+            <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:10px; width:100%;">CANCELAR</button>
+        `);
+        return;
+    }
     const camp = id ? campaigns.find(c => c.id === id) : null;
     openModal(`
         <h2 class="cinzel">${id ? 'Editar' : 'Nueva'} Campaña</h2>
@@ -290,7 +302,7 @@ function openGlobalNoticeModal() {
         <textarea id="g-text" placeholder="Tu mensaje..." style="height:120px;"></textarea>
         <div style="margin-bottom:15px; display:flex; align-items:center; gap:10px;">
             <input type="checkbox" id="g-long" style="width:auto; margin:0;">
-            <label style="font-size:0.8rem;">DURACIÓN EXTENDIDA (30 días)</label>
+            <label style="font-size:0.8rem;">DURACIÓN EXTENDIDA (30 días) <span style="color:var(--gold);">[UPGRADE]</span></label>
         </div>
         <p style="font-size:0.7rem; color:#666;">* Por defecto duran 7 días. Mensajes sospechosos serán moderados.</p>
         <button onclick="window.postGlobalNotice()" class="btn-primary">PUBLICAR</button>
@@ -319,10 +331,31 @@ function renderLocalBoard() {
     const camp = campaigns.find(c => c.id === currentCampaignId);
     if (!camp) return;
     const res = document.getElementById('local-board');
-    res.innerHTML = (camp.notices || []).map((n, i) => `
-        <div class="card" style="background:#0a0a0a; position:relative; border-left:4px solid var(--danger);">
+    res.innerHTML = (camp.notices || []).map((n, i) => {
+        const days = (Date.now() - (n.date || 0)) / (1000 * 60 * 60 * 24);
+        const readCount = (n.readBy || []).length;
+        const partySize = camp.party.length || 1;
+        const readPercent = (readCount / partySize) * 100;
+        
+        let suggestion = '';
+        if (currentRole === 'master') {
+            if (days > 30 && readPercent >= 70) {
+                suggestion = `<div style="background:rgba(197,160,89,0.1); border:1px solid var(--gold); padding:8px; border-radius:5px; margin-top:10px; font-size:0.75rem; color:var(--gold);">
+                    <i class="fa-solid fa-broom"></i> <b>Sugerencia:</b> ${Math.floor(readPercent)}% lo leyó hace +30 días. ¿Borrar misión antigua?
+                </div>`;
+            } else if (days > 15 && readPercent < 30) {
+                suggestion = `<div style="background:rgba(255,136,0,0.1); border:1px solid #ff8800; padding:8px; border-radius:5px; margin-top:10px; font-size:0.75rem; color:#ff8800;">
+                    <i class="fa-solid fa-circle-exclamation"></i> <b>Sugerencia:</b> Solo ${Math.floor(readPercent)}% de interés en 15 días. ¿Eliminar o actualizar?
+                </div>`;
+            }
+        }
+        return `
+        <div class="card" style="background:#0a0a0a; position:relative; border-left:4px solid var(--danger); ${suggestion ? 'border-color:var(--gold);' : ''}">
             <div style="display:flex; justify-content:space-between; align-items:start;">
-                <h3 style="margin:0;">${n.title}</h3>
+                <div>
+                    <h3 style="margin:0;">${n.title}</h3>
+                    ${suggestion}
+                </div>
                 ${currentRole === 'master' ? `<i class="fa-solid fa-trash" onclick="window.deleteMission(${i})" style="color:var(--danger); cursor:pointer;"></i>` : ''}
             </div>
             <p style="font-size:1.1rem; white-space:pre-wrap; margin:15px 0; color:#ccc;">${n.text}</p>
@@ -333,7 +366,7 @@ function renderLocalBoard() {
                 ${currentRole === 'adventurer' ? `<button onclick="window.markAsRead(${i})" class="btn-secondary" style="font-size:0.7rem; padding:5px 10px;">MARCAR COMO LEÍDO</button>` : ''}
             </div>
         </div>
-    `).join('') || '<p style="color:#444; text-align:center;">No hay misiones activas.</p>';
+    `}) || '<p style="color:#444; text-align:center;">No hay misiones activas.</p>';
 }
 
 function markAsRead(idx) {
@@ -352,7 +385,7 @@ function addMission() {
     if (!title || !text) return;
     const camp = campaigns.find(c => c.id === currentCampaignId);
     if (!camp.notices) camp.notices = [];
-    camp.notices.unshift({ title, text, readBy: [] });
+    camp.notices.unshift({ title, text, readBy: [], date: Date.now() });
     saveAll(); renderLocalBoard();
     document.getElementById('mission-title').value = '';
     document.getElementById('mission-text').value = '';
@@ -675,3 +708,22 @@ function reclaimMaster(id) {
     }
 }
 window.reclaimMaster = reclaimMaster;
+window.rollForLimit = rollForLimit;
+function rollForLimit() {
+    let rolls = [];
+    for(let i=0; i<3; i++) rolls.push(Math.floor(Math.random() * 20) + 1);
+    let maxRoll = Math.max(...rolls);
+    if (maxRoll < 15) maxRoll = Math.floor(Math.random() * 6) + 15; // Asegurar > 14
+    userTier.level = 'master';
+    userTier.maxParties = maxRoll;
+    userTier.rolls = rolls;
+    saveTier();
+    renderLobby();
+    openModal(`
+        <h2 class="cinzel">¡Suerte de Dados!</h2>
+        <p style="text-align:center;">Tus tiradas: ${rolls.join(', ')}</p>
+        <div style="font-size:3rem; text-align:center; color:var(--gold); margin:20px 0;">🎲 ${maxRoll}</div>
+        <p style="text-align:center;">Tu nuevo límite es de <b>${maxRoll} aventuras</b>.</p>
+        <button onclick="window.closeModal()" class="btn-primary">EMPEZAR</button>
+    `);
+}
