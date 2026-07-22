@@ -665,7 +665,9 @@ function openDiceModal() {
             <div id="ritual-msg-container" class="ritual-msg-area" onclick="window.checkRedemptionClick()">
                 <p id="ritual-msg" style="margin:0;">Toca el dado para tu 1ª tirada</p>
             </div>
-            <div id="visual-die" class="d20-visual" onclick="window.executeRitualStep()">?</div>
+            <div id="visual-die" class="d20-visual" onclick="window.executeRitualStep()" style="color:var(--gold);">
+                <i class="fa-solid fa-dice-d20"></i>
+            </div>
             <div class="roll-history" id="ritual-history">
                 <div class="roll-dot">?</div>
                 <div class="roll-dot">?</div>
@@ -708,7 +710,7 @@ function executeRitualStep() {
         }
         
         currentRitualRolls.push(roll);
-        die.innerText = roll;
+        die.innerHTML = `<span style="font-family:Cinzel;">${roll}</span>`;
         
         const dots = document.getElementById('ritual-history').children;
         if (currentRitualRolls.length <= 3) {
@@ -720,7 +722,10 @@ function executeRitualStep() {
 
         if (currentRitualRolls.length < 3) {
             msg.innerText = `Resultado: ${roll}. ¡Toca para la siguiente!`;
-            die.onclick = window.executeRitualStep;
+            setTimeout(() => {
+                die.innerHTML = '<i class="fa-solid fa-dice-d20"></i>';
+                die.onclick = window.executeRitualStep;
+            }, 800);
         } else if (currentRitualRolls.length === 3 && maxSoFar < 15) {
             isRedemptionMode = true;
             const container = document.getElementById('ritual-msg-container');
@@ -747,11 +752,11 @@ function finalizeRitual(finalLimit) {
     
     setTimeout(() => {
         openModal(`
-            <h2 class="cinzel">Nuevo Rango: Master</h2>
+            <h2 class="cinzel">NUEVO RANGO: MASTER</h2>
             <p style="text-align:center;">Has desbloqueado todo el poder del Grimorio.</p>
-            <div style="font-size:4rem; text-align:center; color:var(--gold); margin:20px 0; display:flex; flex-direction:column; align-items:center; gap:10px;">
+            <div style="font-size:4.5rem; text-align:center; color:var(--gold); margin:20px 0; display:flex; flex-direction:column; align-items:center; gap:10px;">
                 <i class="fa-solid fa-dice-d20"></i>
-                <span style="font-family:Cinzel; font-size:2.5rem;">${finalLimit}</span>
+                <span style="font-family:Cinzel; font-size:2.5rem; margin-top:-10px;">${finalLimit}</span>
             </div>
             <button onclick="window.closeModal()" class="btn-primary">RECLAMAR PODER</button>
         `);
