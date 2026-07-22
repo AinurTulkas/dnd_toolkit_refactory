@@ -117,6 +117,7 @@ function renderCampaignItem(c, role) {
                 <p style="margin:0; font-size:0.8rem; color:#666;">${(c.party || []).length} Héroes • ${role.toUpperCase()}</p>
             </div>
             <div style="display:flex; gap:20px; font-size:1.4rem; align-items:center;">
+                ${!isMaster ? `<i class="fa-solid fa-crown" onclick="event.stopPropagation(); window.reclaimMaster('${c.id}')" style="color:var(--gold); cursor:pointer; font-size:1.1rem;" title="Reclamar Trono (Dungeon Master)"></i>` : ''}
                 ${isMaster ? `<i class="fa-solid fa-share-nodes" onclick="event.stopPropagation(); window.copyInviteCode('${c.id}')" style="color:var(--gold); cursor:pointer; font-size:1.1rem;" title="Copiar Código"></i>` : ''}
                 <i class="fa-solid fa-pen-to-square" onclick="event.stopPropagation(); window.showCampaignForm('${c.id}')" style="color:var(--gold); cursor:pointer;"></i>
                 <i class="fa-solid fa-trash" onclick="event.stopPropagation(); window.confirmDeleteCampaign('${c.id}')" style="color:var(--danger); cursor:pointer;"></i>
@@ -150,14 +151,25 @@ function showJoinForm() {
 function joinCampaign() {
     const code = document.getElementById('join-code').value.trim();
     if (!code) return;
-    // En una app real, esto buscaría en una DB. Aquí simulamos añadiendo una campaña marcada como "unida".
-    // Para que funcione el demo, si el código existe localmente, lo marcamos. Si no, creamos una "fantasma".
+    
     let camp = campaigns.find(c => c.id === code);
-    if (camp) {
-        camp.isJoined = true;
-    } else {
-        campaigns.push({ id: code, name: "Aventura Invitada", party: [], notices: [], isJoined: true });
+    
+    if (camp && !camp.isJoined) {
+        openModal(`
+            <h2 class="cinzel" style="color:var(--gold);">Acceso Denegado</h2>
+            <p style="text-align:center;">Ya eres el Master de esta aventura. Un Dungeon Master no puede ser un simple aventurero en su propio reino.</p>
+            <button onclick="window.closeModal()" class="btn-primary">ENTENDIDO</button>
+        `);
+        return;
     }
+
+    if (camp && camp.isJoined) {
+        openModal(`<p style="text-align:center;">Ya formas parte de esta aventura.</p>`);
+        return;
+    }
+
+    // Si no existe, se une como jugador
+    campaigns.push({ id: code, name: "Aventura Invitada", party: [], notices: [], isJoined: true });
     saveAll(); renderLobby(); closeModal();
 }
 
@@ -464,7 +476,7 @@ function showMonsterModal(name) {
     openModal(`
         <h2 class="cinzel" style="text-align:center; color:var(--gold); font-size:2rem;">${m.name}</h2>
         <p style="text-align:center; color:#888; margin-top:-10px;">${m.type} | CR: ${m.cr}</p>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin:20px 0;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:20px 0;">
             <div class="card" style="margin:0; text-align:center; background:#000;">CA<br><b style="font-size:1.5rem; color:var(--gold);">${m.ac}</b></div>
             <div class="card" style="margin:0; text-align:center; background:#000;">VIDA<br><b style="font-size:1.5rem; color:var(--danger);">${m.hp}</b></div>
         </div>
@@ -646,3 +658,4 @@ window.openGlobalNoticeModal = openGlobalNoticeModal;
 window.copyInviteCode = copyInviteCode;
 window.showJoinForm = showJoinForm;
 window.joinCampaign = joinCampaign;
+window.reclaimMaster = reclaimMaster;
