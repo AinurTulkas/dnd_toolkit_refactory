@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-toolkit-v4;' // Versión 4
+const CACHE_NAME = 'dnd-toolkit-v5'; // Versión 5 - Recuperación total
 const assetsToCache = [
     './',
     './index.html',
@@ -29,7 +29,7 @@ self.addEventListener('activate', event => {
             );
         }).then(() => self.clients.claim())
     );
-}
+});
 
 // Estrategia Network First para evitar que la cache nos juegue malas pasadas
 self.addEventListener('fetch', event => {
