@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D&D Grimoire Pro</title>
-    <link rel="manifest" href="manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="manieest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="style-sheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="style-sheet" href="styles.css">
 </head>
 <body>
     <div id="modal-overlay">
@@ -17,13 +17,14 @@
     <div id="lobby-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-dark); z-index:5000; overflow-y:auto; display:none;">
     </div>
 
-    <div id="role-indicator" style="position:fixed; top:60px; right:20px; z-index:1000; display:none; background:rgba(0,0,0,0.8); border:1px solid var(--gold); padding:5px 10px; border-radius:10px; color:var(--gold); font-size:0.7rem; font-family:Cinzel;">MODO: <span id="role-text">MASTER</span></div>
+    <div id="role-indicator" style="position:fixed; top:10px; right:10px; z-index:1000; display:none; background:rgba(0,0,0,0.8); border:1px solid var(--gold); padding:5px 10px; border-radius:10px; color:var(--gold); font-size:0.7rem; font-family:Cinzel;">MODO: <span id="role-text">MASTER</span></div>
 
     <div class="container">
         <div id="tab-home" class="tab-content">
             <div class="card" style="text-align:center;">
                 <h1 id="campaign-title" style="font-size:2.5rem; margin-bottom:10px;">Aventura</h1>
                 <p style="color:var(--gold-muted); font-style:italic; margin-bottom:30px;">Panel de Control</p>
+                
                 <div style="margin-bottom:20px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:0.9rem;">
                     <span>Hitos</span>
                     <label class="switch">
@@ -32,22 +33,10 @@
                     </label>
                     <span>XP</span>
                 </div>
+                
                 <div style="display:grid; grid-template-columns:1fr; gap:15px;">
                     <button onclick="window.exitToLobby()" class="btn-secondary" style="width:100%;">CAMBIAR DE AVENTURA</button>
                 </div>
-            </div>
-        </div>
-
-        <div id="tab-combat" class="tab-content">
-            <div class="card">
-                <h2 class="cinzel">Cámara de Batalla</h2>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:25px;">
-                    <button onclick="window.generateEncounter('normal')" class="btn-primary">INCURSIÓN</button>
-                    <button onclick="window.generateEncounter('hard')" class="btn-primary" style="border-color:#ff4444;">GRAN DESAFÍO</button>
-                </div>
-                <hr style="border-top:1px solid #222; margin:25px 0;">
-                <input type="text" id="monster-search" placeholder="Buscar en el manual..." onkeyup="window.searchMonsters()">
-                <div id="search-results"></div>
             </div>
         </div>
 
@@ -55,13 +44,14 @@
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                     <h2 class="cinzel" style="margin:0;">Gremio</h2>
-                    <button id="btn-lvl-all" onclick="window.levelUpAll()" class="btn-secondary" style="font-size:0.7rem; display:none;">+1 NIVEL A TODOS</button>
+                    <button id="btn-lvl-all" onclick="window.levelUpAll()" class="btn-secondary" style="font-size:0.7rem; display:none;">SUBIR NIVEL A TODOS</button>
                 </div>
                 <div id="character-list"></div>
                 <button onclick="window.showCharForm()" class="btn-primary" style="margin-top:25px;">+ REGISTRAR HÉROE</button>
             </div>
         </div>
     </div>
+
     <nav id="main-nav"></nav>
     <script src="app.js"></script>
 </body>
