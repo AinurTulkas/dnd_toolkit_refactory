@@ -1,7 +1,4 @@
 // --- ESTADO ---
-let userTier = JSON.parse(localStorage.getItem('dnd_user_tier')) || { level: 'free', maxParties: 6, rolls: [] };
-function saveTier() { localStorage.setItem('dnd_user_tier', JSON.stringify(userTier)); }
-
 const XP_TABLE = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 
 function getLevelFromXP(xp) {
@@ -12,6 +9,9 @@ function getLevelFromXP(xp) {
     }
     return level;
 }
+
+let userTier = JSON.parse(localStorage.getItem('dnd_user_tier')) || { level: 'free', maxParties: 6, rolls: [] };
+function saveTier() { localStorage.setItem('dnd_user_tier', JSON.stringify(userTier)); }
 
 let campaigns = JSON.parse(localStorage.getItem('dnd_campaigns')) || [];
 let globalNotices = JSON.parse(localStorage.getItem('dnd_global_notices')) || [];
@@ -90,7 +90,6 @@ function renderLobby() {
                 <h2 class="cinzel">Mis Campañas (Master)</h2>
                 <div id="master-campaigns"></div>
                 <button onclick="window.showCampaignForm()" class="btn-primary" style="margin-top:20px;">INICIAR NUEVA AVENTURA</button>
-                <button onclick="window.rollForLimit()" class="btn-secondary" style="margin-top:10px; width:100%; border-style:dashed; border-color:var(--gold);">[TEST] PROBAR DADO D20</button>
             </div>
 
             <div class="card">
@@ -146,50 +145,14 @@ function renderCampaignItem(c, role) {
     `;
 }
 
-function copyInviteCode(id) {
-    copyToClipboard(id);
+function showCampaignForm(id = null) {
+    const camp = id ? campaigns.find(c => c.id === id) : null;
     openModal(`
-        <h2 class="cinzel" style="text-align:center;">Código Copiado</h2>
-        <p style="text-align:center;">Envía este código a tus jugadores:</p>
-        <div style="background:#000; padding:15px; border-radius:8px; text-align:center; font-family:monospace; color:var(--gold); font-size:1.2rem; border:1px solid var(--gold-muted); margin:15px 0;">
-            ${id}
-        </div>
-        <button onclick="window.closeModal()" class="btn-primary">ENTENDIDO</button>
-    `);
-}
-
-function showJoinForm() {
-    openModal(`
-        <h2 class="cinzel">Unirse a Aventura</h2>
-        <p>Pega el código que te envió tu Dungeon Master:</p>
-        <input type="text" id="join-code" placeholder="camp_123456789...">
-        <button onclick="window.joinCampaign()" class="btn-primary">UNIRSE</button>
+        <h2 class="cinzel">${id ? 'Editar Aventura' : 'Nueva Aventura'}</h2>
+        <input type="text" id="form-camp-name" value="${camp ? camp.name : ''}" placeholder="Nombre de la campaña...">
+        <button onclick="window.saveCampaign(${id ? `'${id}'` : ''})" class="btn-primary">FORJAR DESTINO</button>
         <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CANCELAR</button>
     `);
-}
-
-function joinCampaign() {
-    const code = document.getElementById('join-code').value.trim();
-    if (!code) return;
-    
-    let camp = campaigns.find(c => c.id === code);
-    
-    if (camp && !camp.isJoined) {
-        openModal(`
-            <h2 class="cinzel" style="color:var(--gold);">Acceso Denegado</h2>
-            <p style="text-align:center;">Ya eres el Master de esta aventura. No puedes unirte como aventurero.</p>
-            <button onclick="window.closeModal()" class="btn-primary">ENTENDIDO</button>
-        `);
-        return;
-    }
-
-    if (camp && camp.isJoined) {
-        openModal(`<p style="text-align:center;">Ya formas parte de esta aventura.</p>`);
-        return;
-    }
-
-    campaigns.push({ id: code, name: "Aventura Invitada", party: [], notices: [], isJoined: true });
-    saveAll(); renderLobby(); closeModal();
 }
 
 function saveCampaign(id) {
@@ -343,7 +306,6 @@ function openGlobalNoticeModal() {
             <input type="checkbox" id="g-long" style="width:auto; margin:0;">
             <label style="font-size:0.8rem;">DURACIÓN EXTENDIDA (30 días)</label>
         </div>
-        <p style="font-size:0.7rem; color:#666;">* Por defecto duran 7 días. Mensajes sospechosos serán moderados.</p>
         <button onclick="window.postGlobalNotice()" class="btn-primary">PUBLICAR</button>
         <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">VOLVER</button>
     `);
@@ -394,13 +356,11 @@ function renderLocalBoard() {
         return `
         <div class="card" style="background:#0a0a0a; position:relative; border-left:4px solid var(--danger); ${suggestion ? 'border-color:var(--gold);' : ''}">
             <div style="display:flex; justify-content:space-between; align-items:start;">
-                <div>
-                    <h3 style="margin:0;">${n.title}</h3>
-                    ${suggestion}
-                </div>
+                <h3 style="margin:0;">${n.title}</h3>
                 ${currentRole === 'master' ? `<i class="fa-solid fa-trash" onclick="window.deleteMission(${i})" style="color:var(--danger); cursor:pointer;"></i>` : ''}
             </div>
             <p style="font-size:1.1rem; white-space:pre-wrap; margin:15px 0; color:#ccc;">${n.text}</p>
+            ${suggestion}
             <div style="border-top:1px solid #222; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
                 <div id="seals-${i}">
                     ${(n.readBy || []).map(r => `<div class="wax-seal" title="${r}"></div>`).join('')}
@@ -417,8 +377,8 @@ function markAsRead(idx) {
     if (!camp || !camp.notices[idx]) return;
     const n = camp.notices[idx];
     if (!n.readBy) n.readBy = [];
-    if (!n.readBy.includes('Jugador')) { 
-        n.readBy.push('Jugador');
+    if (!n.readBy.includes('Aventurero')) { 
+        n.readBy.push('Aventurero');
         saveAll(); renderLocalBoard();
     }
 }
@@ -442,302 +402,25 @@ function deleteMission(idx) {
     saveAll(); renderLocalBoard();
 }
 
-// --- NPC TRADE ---
-function openNPCTrade(charId) {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const char = (camp.party || []).find(p => p.id == charId);
-    if (!char) return;
-    activeTrade = {
-        charId: charId,
-        giveItems: [],
-        receiveCoins: { cp:0, sp:0, ep:0, gp:0, pp:0 },
-        receiveItems: [],
-        p1Confirmed: false,
-        p2Confirmed: false
-    };
-    renderNPCTradeUI(char);
-}
-
-function renderNPCTradeUI(char) {
-    openModal(`
-        <h2 class="cinzel" style="text-align:center;">Trato con NPC</h2>
-        <div style="display:grid; grid-template-columns: 1fr; gap:20px;">
-            <div class="card" style="margin:0; background:#000;">
-                <h3 style="font-size:0.9rem; color:white;">ENTREGA DEL AVENTURERO</h3>
-                <div style="max-height:120px; overflow-y:auto; font-size:1rem; margin-bottom:10px;">
-                    ${(char.inventory || []).map((it, i) => `
-                        <div style="padding:5px 0;"><label><input type="checkbox" onchange="window.updateNPCGive(${i})"> ${it.name}</label></div>
-                    `).join('') || 'Mochila vacía'}
-                </div>
-                <div class="coin-grid">
-                    <div class="coin-unit"><span class="coin-cp">CP</span><span>${char.wallet.cp}</span></div>
-                    <div class="coin-unit"><span class="coin-sp">SP</span><span>${char.wallet.sp}</span></div>
-                    <div class="coin-unit"><span class="coin-gp">GP</span><span>${char.wallet.gp}</span></div>
-                    <div class="coin-unit"><span class="coin-pp">PP</span><span>${char.wallet.pp}</span></div>
-                </div>
-            </div>
-            
-            <div class="card" style="margin:0; background:#000; border:1px solid var(--gold);">
-                <h3 style="font-size:0.9rem; color:var(--gold);">RECOMPENSA DEL NPC</h3>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-                    <input type="number" placeholder="CP" oninput="activeTrade.receiveCoins.cp=this.value">
-                    <input type="number" placeholder="GP" oninput="activeTrade.receiveCoins.gp=this.value">
-                </div>
-                <input type="text" id="npc-item-search" placeholder="Generar ítem o material..." onkeyup="window.searchNPCItems()">
-                <div id="npc-search-results" style="font-size:0.9rem; color:var(--gold); margin-bottom:10px;"></div>
-                <div id="npc-pending-items" style="font-size:0.9rem; color:#aaa;"></div>
-            </div>
-        </div>
-
-        <div style="margin-top:20px; display:flex; gap:10px;">
-            <button id="btn-npc-p1" onclick="window.confirmNPCPart(1)" class="btn-secondary" style="flex:1;">SELLAR NPC</button>
-            <button id="btn-npc-p2" onclick="window.confirmNPCPart(2)" class="btn-secondary" style="flex:1;">SELLAR JUGADOR</button>
-        </div>
-        <button id="btn-npc-exec" onclick="window.executeNPCTrade()" class="btn-primary" style="display:none; margin-top:15px;">CERRAR TRATO</button>
-    `);
-}
-
-function updateNPCGive(idx) {
-    if (!activeTrade) return;
-    if (activeTrade.giveItems.includes(idx)) activeTrade.giveItems = activeTrade.giveItems.filter(i => i !== idx);
-    else activeTrade.giveItems.push(idx);
-}
-
-function searchNPCItems() {
-    const q = document.getElementById('npc-item-search').value.toLowerCase();
-    const res = document.getElementById('npc-search-results');
-    if (q.length < 2) return res.innerHTML = '';
-    const matches = [...srdData.items, ...srdData.weapons].filter(i => i.name.toLowerCase().includes(q)).slice(0, 3);
-    res.innerHTML = matches.map(m => `<div onclick="window.addNPCItem('${m.name}')" style="cursor:pointer; padding:8px; border-bottom:1px solid #222;">+ ${m.name}</div>`).join('') + `<div onclick="window.addNPCItem('${document.getElementById('npc-item-search').value}')" style="color:white; cursor:pointer; padding:8px;">+ [Crear]: ${document.getElementById('npc-item-search').value}</div>`;
-}
-
-function addNPCItem(name) {
-    if (!activeTrade) return;
-    activeTrade.receiveItems.push(name);
-    document.getElementById('npc-pending-items').innerHTML = activeTrade.receiveItems.map(i => `• ${i}`).join('<br>');
-}
-
-function confirmNPCPart(n) {
-    if (!activeTrade) return;
-    if (n === 1) { activeTrade.p1Confirmed = true; document.getElementById('btn-npc-p1').style.background = 'var(--success)'; }
-    if (n === 2) { activeTrade.p2Confirmed = true; document.getElementById('btn-npc-p2').style.background = 'var(--success)'; }
-    if (activeTrade.p1Confirmed && activeTrade.p2Confirmed) document.getElementById('btn-npc-exec').style.display = 'block';
-}
-
-function executeNPCTrade() {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const char = camp.party.find(p => p.id == activeTrade.charId);
-    
-    activeTrade.giveItems.sort((a,b) => b-a).forEach(idx => char.inventory.splice(idx, 1));
-    
-    char.wallet.cp += parseInt(activeTrade.receiveCoins.cp) || 0;
-    char.wallet.sp += parseInt(activeTrade.receiveCoins.sp) || 0;
-    char.wallet.gp += parseInt(activeTrade.receiveCoins.gp) || 0;
-    char.wallet.pp += parseInt(activeTrade.receiveCoins.pp) || 0;
-    
-    activeTrade.receiveItems.forEach(name => char.inventory.push({ name, weight: 1 }));
-    
-    saveAll(); closeModal(); renderParty(); renderMasterEye();
-}
-
-// --- COMBAT & SRD ---
+// --- SRD DATA ---
 async function loadSRDData() {
     try {
         const response = await fetch('data/srd_data.json');
         srdData = await response.json();
-    } catch (e) { console.warn("SRD fail"); }
-}
-
-function searchMonsters() {
-    const q = document.getElementById('monster-search').value.toLowerCase();
-    const res = document.getElementById('search-results');
-    if (!q) return res.innerHTML = '';
-    const matches = srdData.monsters.filter(m => m.name.toLowerCase().includes(q)).slice(0, 5);
-    res.innerHTML = matches.map(m => `
-        <div onclick="window.showMonsterModal('${m.name}')" class="campaign-item" style="cursor:pointer;">
-            <span style="color:var(--gold); font-family:Cinzel;">${m.name}</span>
-            <span style="color:#666; font-size:0.8rem;">CR ${m.cr}</span>
-        </div>
-    `).join('');
-}
-
-function showMonsterModal(name) {
-    const m = srdData.monsters.find(mo => mo.name === name);
-    if (!m) return;
-    openModal(`
-        <h2 class="cinzel" style="text-align:center; color:var(--gold); font-size:2rem;">${m.name}</h2>
-        <p style="text-align:center; color:#888; margin-top:-10px;">${m.type} | CR: ${m.cr}</p>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:20px 0;">
-            <div class="card" style="margin:0; text-align:center; background:#000;">CA<br><b style="font-size:1.5rem; color:var(--gold);">${m.ac}</b></div>
-            <div class="card" style="margin:0; text-align:center; background:#000;">VIDA<br><b style="font-size:1.5rem; color:var(--danger);">${m.hp}</b></div>
-        </div>
-        <button onclick="window.goToLootFromMonster('${m.name}', '${m.cr}', '${m.type}')" class="btn-primary">DERROTADO (BOTÍN)</button>
-        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CERRAR</button>
-    `);
-}
-
-function goToLootFromMonster(name, cr, type) {
-    closeModal();
-    generateLoot(cr, type, name);
-}
-
-// --- BOTÍN ---
-
-// --- RITUAL ---
-let currentRitualRolls = [];
-let isRedemptionMode = false;
-
-function rollForLimit() {
-    currentRitualRolls = [];
-    isRedemptionMode = false;
-    openDiceModal();
-}
-
-function openDiceModal() {
-    openModal(`
-        <div class="dice-ritual-area">
-            <h2 class="cinzel">Ritual de Ascenso</h2>
-            <div id="ritual-msg-container" class="ritual-msg-area" onclick="window.checkRedemptionClick()">
-                <p id="ritual-msg" style="margin:0;">Toca el dado para tu 1ª tirada</p>
-            </div>
-            <div id="visual-die" class="d20-visual" onclick="window.executeRitualStep()" style="color:var(--gold);">
-                <i class="fa-solid fa-dice-d20"></i>
-            </div>
-            <div class="roll-history" id="ritual-history">
-                <div class="roll-dot">?</div>
-                <div class="roll-dot">?</div>
-                <div class="roll-dot">?</div>
-            </div>
-        </div>
-    `);
-}
-
-function checkRedemptionClick() {
-    if (isRedemptionMode) {
-        isRedemptionMode = false;
-        const msg = document.getElementById('ritual-msg');
-        const container = document.getElementById('ritual-msg-container');
-        const die = document.getElementById('visual-die');
-        
-        container.classList.remove('waiting');
-        msg.innerHTML = "Los dioses aceptan tu tributo...<br><b style='color:var(--gold);'>¡LANZA EL TIRO DE GRACIA!</b>";
-        die.onclick = window.executeRitualStep;
-        die.style.boxShadow = "0 0 30px var(--gold)";
+    } catch (e) { 
+        console.warn("SRD fail, usando datos locales"); 
+        srdData = { 
+            classes: [{name:'Guerrero'}, {name:'Mago'}, {name:'Clérigo'}, {name:'Pícaro'}], 
+            races: [{name:'Humano'}, {name:'Elfo'}, {name:'Enano'}, {name:'Mediano'}], 
+            monsters: [], items: [], weapons: [] 
+        };
     }
 }
 
-function executeRitualStep() {
-    const die = document.getElementById('visual-die');
-    const msg = document.getElementById('ritual-msg');
-    
-    die.classList.add('rolling');
-    die.onclick = null;
-    msg.innerText = "¡Lanzando!";
-
-    setTimeout(() => {
-        die.classList.remove('rolling');
-        let roll;
-        
-        if (currentRitualRolls.length === 3) {
-            roll = 15; 
-        } else {
-            roll = Math.floor(Math.random() * 20) + 1;
-        }
-        
-        currentRitualRolls.push(roll);
-        die.innerHTML = `<span style="font-family:Cinzel;">${roll}</span>`;
-        
-        const dots = document.getElementById('ritual-history').children;
-        if (currentRitualRolls.length <= 3) {
-            dots[currentRitualRolls.length - 1].innerText = roll;
-            dots[currentRitualRolls.length - 1].classList.add('active');
-        }
-
-        let maxSoFar = Math.max(...currentRitualRolls);
-
-        if (currentRitualRolls.length < 3) {
-            msg.innerText = `Resultado: ${roll}. ¡Toca para la siguiente!`;
-            setTimeout(() => {
-                die.innerHTML = '<i class="fa-solid fa-dice-d20"></i>';
-                die.onclick = window.executeRitualStep;
-            }, 800);
-        } else if (currentRitualRolls.length === 3 && maxSoFar < 15) {
-            isRedemptionMode = true;
-            const container = document.getElementById('ritual-msg-container');
-            container.classList.add('waiting');
-            msg.innerHTML = `<b style="color:#ff4444;">SUERTE ADVERSA...</b><br><span style="font-size:0.8rem;">[Toca este mensaje para pedir favor divino]</span>`;
-        } else {
-            finalizeRitual(maxSoFar);
-        }
-    }, 1000);
-}
-
-function finalizeRitual(finalLimit) {
-    userTier.level = 'master';
-    userTier.maxParties = finalLimit;
-    saveTier();
-    renderLobby();
-
-    const msg = document.getElementById('ritual-msg');
-    const die = document.getElementById('visual-die');
-    
-    die.style.color = "var(--gold)";
-    die.style.transform = "scale(1.2)";
-    msg.innerHTML = `<b style="color:var(--gold);">¡ASCENSO COMPLETADO!</b><br>Límite: <b>${finalLimit} aventuras</b>.`;
-    
-    setTimeout(() => {
-        openModal(`
-            <h2 class="cinzel">NUEVO RANGO: MASTER</h2>
-            <p style="text-align:center;">Has desbloqueado todo el poder del Grimorio.</p>
-            <div style="font-size:4.5rem; text-align:center; color:var(--gold); margin:20px 0; display:flex; flex-direction:column; align-items:center; gap:10px;">
-                <i class="fa-solid fa-dice-d20"></i>
-                <span style="font-family:Cinzel; font-size:2.5rem; margin-top:-10px;">${finalLimit}</span>
-            </div>
-            <button onclick="window.closeModal()" class="btn-primary">RECLAMAR PODER</button>
-        `);
-    }, 2000);
-}
-
-function reclaimMaster(id) {
-    let camp = campaigns.find(c => c.id === id);
-    if (camp) {
-        camp.isJoined = false;
-        saveAll();
-        location.reload();
-    }
-}
-
-// --- INIT ---
-document.addEventListener('DOMContentLoaded', init);
-
-// Bindings globales
-window.showTab = showTab;
-window.selectCampaign = selectCampaign;
-window.exitToLobby = exitToLobby;
-window.showCampaignForm = showCampaignForm;
-window.saveCampaign = saveCampaign;
-window.confirmDeleteCampaign = confirmDeleteCampaign;
-window.deleteCampaign = deleteCampaign;
-window.closeModal = closeModal;
-window.openGlobalNoticeModal = openGlobalNoticeModal;
-window.postGlobalNotice = postGlobalNotice;
-window.addMission = addMission;
-window.deleteMission = deleteMission;
-window.searchMonsters = searchMonsters;
-window.showMonsterModal = showMonsterModal;
-window.goToLootFromMonster = goToLootFromMonster;
-window.markAsRead = markAsRead;
-window.copyInviteCode = copyInviteCode;
-window.showJoinForm = showJoinForm;
-window.joinCampaign = joinCampaign;
-window.reclaimMaster = reclaimMaster;
-window.rollForLimit = rollForLimit;
-window.executeRitualStep = executeRitualStep;
-window.checkRedemptionClick = checkRedemptionClick;
-
-window.showCharForm = function() {
-    const races = srdData.races.map(r => `<option value="${r.name}">${r.name}</option>`).join('') || '<option>Humano</option>';
-    const classes = srdData.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('') || '<option>Guerrero</option>';
+// --- PERSONAJES ---
+function showCharForm() {
+    const races = srdData.races.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+    const classes = srdData.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
     
     openModal(`
         <h2 class="cinzel">Nuevo Aventurero</h2>
@@ -758,12 +441,12 @@ window.showCharForm = function() {
         <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:10px; width:100%;">CANCELAR</button>
         <style>
             .stat-box { background:#000; padding:5px; border-radius:5px; text-align:center; font-size:0.7rem; color:var(--gold); }
-            .stat-box input { padding:5px; margin:0; text-align:center; }
+            .stat-box input { padding:5px; margin:0; text-align:center; background:none; border:none; border-bottom:1px solid var(--gold); }
         </style>
     `);
-};
+}
 
-window.createCharacter = function() {
+function createCharacter() {
     const name = document.getElementById('char-name').value.trim();
     if (!name) return;
     
@@ -792,164 +475,14 @@ window.createCharacter = function() {
     });
     
     saveAll(); renderParty(); renderMasterEye(); closeModal();
-};
-
-window.generateEncounter = function(difficulty) {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    if (!camp || !camp.party || camp.party.length === 0) {
-        openModal('<h2 class="cinzel">Sin Héroes</h2><p>Registra aventureros en el Gremio para calcular el desafío.</p>');
-        return;
-    }
-    
-    const avgLevel = camp.party.reduce((sum, p) => sum + (p.level || 1), 0) / camp.party.length;
-    let minCR, maxCR;
-
-    if (difficulty === 'hard') {
-        minCR = avgLevel + 1;
-        maxCR = avgLevel + 3;
-    } else {
-        minCR = Math.max(0, avgLevel - 1);
-        maxCR = avgLevel + 1;
-    }
-    
-    const matches = srdData.monsters.filter(m => {
-        const crValue = eval(m.cr);
-        return crValue >= minCR && crValue <= maxCR;
-    });
-
-    if (matches.length === 0) {
-        // Fallback si no hay nada exacto
-        const fallback = srdData.monsters.filter(m => eval(m.cr) <= maxCR).slice(-5);
-        if(fallback.length === 0) return;
-        showMonsterModal(fallback[Math.floor(Math.random() * fallback.length)].name);
-    } else {
-        const monster = matches[Math.floor(Math.random() * matches.length)];
-        showMonsterModal(monster.name);
-    }
-};
-
-window.generateLoot = function(crStr, type, monsterName) {
-    const cr = eval(crStr) || 1;
-    const isNature = ['beast', 'monstrosity', 'plant', 'ooze'].includes(type.toLowerCase());
-    
-    // XP oficial aproximada (o buscar en el objeto m)
-    const mData = srdData.monsters.find(m => m.name === monsterName);
-    const xp = mData ? (parseInt(mData.xp) || Math.floor(cr * 200)) : Math.floor(cr * 200);
-
-    let coins = { cp:0, sp:0, ep:0, gp:0, pp:0 };
-    let items = [];
-    let isFake = Math.random() < 0.12;
-
-    if (isNature) {
-        items.push({ name: `Piel de ${monsterName}`, weight: 5, val: Math.floor(cr * 5) });
-        items.push({ name: `Glándula/Restos de ${monsterName}`, weight: 1, val: Math.floor(cr * 2) });
-    } else {
-        coins.cp = Math.floor(Math.random() * 100 * cr);
-        coins.sp = Math.floor(Math.random() * 50 * cr);
-        coins.gp = Math.floor((Math.random() * 20 + 10) * cr);
-        if (cr >= 5) coins.pp = Math.floor(Math.random() * 5 * cr);
-        
-        // Objetos para pensantes
-        if (Math.random() > 0.4) {
-            const trinkets = ["Dije de hueso", "Mapa borroso", "Anillo de cobre", "Llave oxidada", "Cáliz de peltre"];
-            items.push({ name: trinkets[Math.floor(Math.random() * trinkets.length)], weight: 0.5, val: Math.floor(cr * 1) });
-        }
-    }
-
-    lastGeneratedLoot = { coins, items, xp, isFake };
-
-    let coinHtml = Object.entries(coins).filter(([_, v]) => v > 0).map(([k, v]) => `<span class="coin-${k}">${v}${k}</span>`).join(' ');
-    
-    openModal(`
-        <h2 class="cinzel">${isNature ? 'Restos Naturales' : 'Cofre Hallado'}</h2>
-        <div style="text-align:center; margin-bottom:20px;">
-            <div style="font-size:1.4rem; color:var(--gold);">${coinHtml}</div>
-            <div style="color:#aaa; font-size:0.9rem;">XP Ganada: <b style="color:white;">${xp}</b></div>
-            ${items.map(it => `<div style="font-size:0.9rem;">• ${it.name} (${it.val}gp)</div>`).join('')}
-        </div>
-        <div id="loot-assign-area">
-            <label style="font-size:0.8rem;">REPARTIR ENTRE:</label>
-            <select id="loot-target" style="margin-bottom:15px;">
-                <option value="all">Toda la Party (División)</option>
-                ${(campaigns.find(c => c.id === currentCampaignId).party || []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
-            </select>
-            <button onclick="window.executeLootAssign()" class="btn-primary">CONFIRMAR REPARTO</button>
-        </div>
-        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">DESCARTAR</button>
-    `);
-};
-
-window.executeLootAssign = function() {
-    if (!lastGeneratedLoot) return;
-    const target = document.getElementById('loot-target').value;
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const { coins, items, xp, isFake } = lastGeneratedLoot;
-    let report = [];
-
-    if (target === 'all') {
-        const pCount = camp.party.length || 1;
-        const divXP = Math.floor(xp / pCount);
-        camp.party.forEach(p => {
-            let got = { xp: divXP, coins: {} };
-            p.xp = (p.xp || 0) + divXP;
-            Object.keys(coins).forEach(k => {
-                const share = Math.floor(coins[k] / pCount);
-                if (share > 0) {
-                    if (k === 'gp' && isFake) p.wallet.gp_fake = (p.wallet.gp_fake || 0) + share;
-                    else p.wallet[k] = (p.wallet[k] || 0) + share;
-                    got.coins[k] = share;
-                }
-            });
-            items.forEach(it => p.inventory.push({...it}));
-            // Check Level Up
-            const oldLvl = p.level;
-            p.level = getLevelFromXP(p.xp);
-            report.push({ name: p.name, ...got, levelUp: p.level > oldLvl });
-        });
-    } else {
-        const p = camp.party.find(h => h.id == target);
-        p.xp = (p.xp || 0) + xp;
-        Object.keys(coins).forEach(k => {
-            if (k === 'gp' && isFake) p.wallet.gp_fake = (p.wallet.gp_fake || 0) + coins[k];
-            else p.wallet[k] = (p.wallet[k] || 0) + coins[k];
-        });
-        items.forEach(it => p.inventory.push({...it}));
-        const oldLvl = p.level;
-        p.level = getLevelFromXP(p.xp);
-        report.push({ name: p.name, xp, coins, levelUp: p.level > oldLvl });
-    }
-
-    saveAll();
-    renderLobby();
-    renderLootReport(report);
-};
-
-function renderLootReport(data) {
-    const html = `
-        <h2 class="cinzel" style="color:var(--gold);">Resumen del Tesoro</h2>
-        <div style="max-height:300px; overflow-y:auto;">
-            ${data.map(r => `
-                <div class="card" style="padding:10px; background:#000; border-color:${r.levelUp ? 'var(--gold)' : '#333'}">
-                    <div style="display:flex; justify-content:space-between;">
-                        <b>${r.name}</b>
-                        ${r.levelUp ? '<span style="color:var(--gold); font-size:0.7rem;">¡LEVEL UP!</span>' : ''}
-                    </div>
-                    <div style="font-size:0.8rem; color:#aaa;">
-                        +${r.xp} XP | Denominaciones: ${Object.entries(r.coins).map(([k,v]) => v+k).join(', ')}
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-        <button onclick="window.closeModal(); window.renderParty(); window.renderMasterEye();" class="btn-primary" style="margin-top:15px;">CONTINUAR</button>
-    `;
-    openModal(html);
 }
 
-window.renderParty = function() {
+function renderParty() {
     const camp = campaigns.find(c => c.id === currentCampaignId);
     if (!camp) return;
     const res = document.getElementById('character-list');
-    
+    if (!res) return;
+
     res.innerHTML = (camp.party || []).map(c => {
         const totalWeight = (c.inventory || []).reduce((sum, it) => sum + (it.weight || 0), 0);
         const maxWeight = (c.stats ? c.stats.str : 10) * 15;
@@ -994,4 +527,335 @@ window.renderParty = function() {
             </div>
         </div>
     `}).join('') || '<p style="color:#444; text-align:center;">No hay héroes registrados.</p>';
+}
+
+function toggleInventory(id) {
+    const el = document.getElementById(`inv-${id}`);
+    if (el) el.style.display = (el.style.display === 'none' ? 'block' : 'none');
+}
+
+// --- COMBATE ---
+function generateEncounter(difficulty) {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp || !camp.party || camp.party.length === 0) {
+        openModal('<h2 class="cinzel">Sin Héroes</h2><p>Registra aventureros en el Gremio para calcular el desafío.</p>');
+        return;
+    }
+    
+    const avgLevel = camp.party.reduce((sum, p) => sum + (p.level || 1), 0) / camp.party.length;
+    let minCR, maxCR;
+
+    if (difficulty === 'hard') {
+        minCR = avgLevel + 1;
+        maxCR = avgLevel + 3;
+    } else {
+        minCR = Math.max(0, avgLevel - 1);
+        maxCR = avgLevel + 1;
+    }
+    
+    const matches = srdData.monsters.filter(m => {
+        const crValue = eval(m.cr);
+        return crValue >= minCR && crValue <= maxCR;
+    });
+
+    if (matches.length === 0) {
+        const fallback = srdData.monsters.filter(m => eval(m.cr) <= maxCR).slice(-5);
+        if(fallback.length === 0) return;
+        showMonsterModal(fallback[Math.floor(Math.random() * fallback.length)].name);
+    } else {
+        const monster = matches[Math.floor(Math.random() * matches.length)];
+        showMonsterModal(monster.name);
+    }
+}
+
+function searchMonsters() {
+    const q = document.getElementById('monster-search').value.toLowerCase();
+    const res = document.getElementById('search-results');
+    if (!q) return res.innerHTML = '';
+    const matches = srdData.monsters.filter(m => m.name.toLowerCase().includes(q)).slice(0, 5);
+    res.innerHTML = matches.map(m => `
+        <div onclick="window.showMonsterModal('${m.name}')" class="campaign-item" style="cursor:pointer;">
+            <span style="color:var(--gold); font-family:Cinzel;">${m.name}</span>
+            <span style="color:#666; font-size:0.8rem;">CR ${m.cr}</span>
+        </div>
+    `).join('');
+}
+
+function showMonsterModal(name) {
+    const m = srdData.monsters.find(mo => mo.name === name);
+    if (!m) return;
+    openModal(`
+        <h2 class="cinzel" style="text-align:center; color:var(--gold); font-size:2rem;">${m.name}</h2>
+        <p style="text-align:center; color:#888; margin-top:-10px;">${m.type} | CR: ${m.cr}</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:20px 0;">
+            <div class="card" style="margin:0; text-align:center; background:#000;">CA<br><b style="font-size:1.5rem; color:var(--gold);">${m.ac}</b></div>
+            <div class="card" style="margin:0; text-align:center; background:#000;">VIDA<br><b style="font-size:1.5rem; color:var(--danger);">${m.hp}</b></div>
+        </div>
+        <button onclick="window.goToLootFromMonster('${m.name}', '${m.cr}', '${m.type}')" class="btn-primary">DERROTADO (BOTÍN)</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CERRAR</button>
+    `);
+}
+
+function goToLootFromMonster(name, cr, type) {
+    closeModal();
+    generateLoot(cr, type, name);
+}
+
+// --- BOTÍN ---
+function generateLoot(crStr, type, monsterName) {
+    const cr = eval(crStr) || 1;
+    const isNature = ['beast', 'monstrosity', 'plant', 'ooze'].includes(type.toLowerCase());
+    
+    const mData = srdData.monsters.find(m => m.name === monsterName);
+    const xp = mData ? (parseInt(mData.xp) || Math.floor(cr * 200)) : Math.floor(cr * 200);
+
+    let coins = { cp:0, sp:0, ep:0, gp:0, pp:0 };
+    let items = [];
+    let isFake = Math.random() < 0.12;
+
+    if (isNature) {
+        items.push({ name: `Piel de ${monsterName}`, weight: 5, val: Math.floor(cr * 5) });
+        items.push({ name: `Glándula de ${monsterName}`, weight: 1, val: Math.floor(cr * 2) });
+    } else {
+        coins.cp = Math.floor(Math.random() * 100 * cr);
+        coins.sp = Math.floor(Math.random() * 50 * cr);
+        coins.gp = Math.floor((Math.random() * 20 + 10) * cr);
+        if (cr >= 5) coins.pp = Math.floor(Math.random() * 5 * cr);
+        
+        if (Math.random() > 0.4) {
+            const trinkets = ["Dije de hueso", "Mapa borroso", "Anillo de cobre", "Llave oxidada", "Cáliz de peltre"];
+            items.push({ name: trinkets[Math.floor(Math.random() * trinkets.length)], weight: 0.5, val: Math.floor(cr * 1) });
+        }
+    }
+
+    lastGeneratedLoot = { coins, items, xp, isFake };
+
+    let coinHtml = Object.entries(coins).filter(([_, v]) => v > 0).map(([k, v]) => `<span class="coin-${k}">${v}${k}</span>`).join(' ');
+    
+    openModal(`
+        <h2 class="cinzel">${isNature ? 'Restos Naturales' : 'Cofre Hallado'}</h2>
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:1.4rem; color:var(--gold);">${coinHtml || '0 monedas'}</div>
+            <div style="color:#aaa; font-size:0.9rem;">XP Ganada: <b style="color:white;">${xp}</b></div>
+            ${items.map(it => `<div style="font-size:0.9rem;">• ${it.name} (${it.val}gp)</div>`).join('')}
+        </div>
+        <div id="loot-assign-area">
+            <label style="font-size:0.8rem;">REPARTIR ENTRE:</label>
+            <select id="loot-target" style="margin-bottom:15px;">
+                <option value="all">Toda la Party (División)</option>
+                ${(campaigns.find(c => c.id === currentCampaignId).party || []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            </select>
+            <button onclick="window.executeLootAssign()" class="btn-primary">CONFIRMAR REPARTO</button>
+        </div>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">DESCARTAR</button>
+    `);
+}
+
+function executeLootAssign() {
+    if (!lastGeneratedLoot) return;
+    const target = document.getElementById('loot-target').value;
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    const { coins, items, xp, isFake } = lastGeneratedLoot;
+    let report = [];
+
+    if (target === 'all') {
+        const pCount = camp.party.length || 1;
+        const divXP = Math.floor(xp / pCount);
+        camp.party.forEach(p => {
+            let got = { xp: divXP, coins: {} };
+            p.xp = (p.xp || 0) + divXP;
+            Object.keys(coins).forEach(k => {
+                const share = Math.floor(coins[k] / pCount);
+                if (share > 0) {
+                    if (k === 'gp' && isFake) p.wallet.gp_fake = (p.wallet.gp_fake || 0) + share;
+                    else p.wallet[k] = (p.wallet[k] || 0) + share;
+                    got.coins[k] = share;
+                }
+            });
+            items.forEach(it => p.inventory.push({...it}));
+            const oldLvl = p.level;
+            p.level = getLevelFromXP(p.xp);
+            report.push({ name: p.name, ...got, levelUp: p.level > oldLvl });
+        });
+    } else {
+        const p = camp.party.find(h => h.id == target);
+        p.xp = (p.xp || 0) + xp;
+        Object.keys(coins).forEach(k => {
+            if (k === 'gp' && isFake) p.wallet.gp_fake = (p.wallet.gp_fake || 0) + coins[k];
+            else p.wallet[k] = (p.wallet[k] || 0) + coins[k];
+        });
+        items.forEach(it => p.inventory.push({...it}));
+        const oldLvl = p.level;
+        p.level = getLevelFromXP(p.xp);
+        report.push({ name: p.name, xp, coins, levelUp: p.level > oldLvl });
+    }
+
+    saveAll();
+    renderLootReport(report);
+}
+
+function renderLootReport(data) {
+    const html = `
+        <h2 class="cinzel" style="color:var(--gold);">Resumen del Tesoro</h2>
+        <div style="max-height:300px; overflow-y:auto;">
+            ${data.map(r => `
+                <div class="card" style="padding:10px; background:#000; border-color:${r.levelUp ? 'var(--gold)' : '#333'}">
+                    <div style="display:flex; justify-content:space-between;">
+                        <b>${r.name}</b>
+                        ${r.levelUp ? '<span style="color:var(--gold); font-size:0.7rem;">¡LEVEL UP!</span>' : ''}
+                    </div>
+                    <div style="font-size:0.8rem; color:#aaa;">
+                        +${r.xp} XP | Monedas: ${Object.entries(r.coins).map(([k,v]) => v+k).join(', ')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button onclick="window.closeModal(); window.renderParty(); window.renderMasterEye();" class="btn-primary" style="margin-top:15px;">CONTINUAR</button>
+    `;
+    openModal(html);
+}
+
+// --- NPC TRADE ---
+function openNPCTrade(charId) {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    const char = (camp.party || []).find(p => p.id == charId);
+    if (!char) return;
+    activeTrade = {
+        charId: charId,
+        giveItems: [],
+        receiveCoins: { cp:0, sp:0, ep:0, gp:0, pp:0 },
+        receiveItems: [],
+        p1Confirmed: false,
+        p2Confirmed: false
+    };
+    renderNPCTradeUI(char);
+}
+
+function renderNPCTradeUI(char) {
+    openModal(`
+        <h2 class="cinzel" style="text-align:center;">Trato con NPC</h2>
+        <div style="display:grid; grid-template-columns: 1fr; gap:20px;">
+            <div class="card" style="margin:0; background:#000;">
+                <h3 style="font-size:0.9rem; color:white;">ENTREGA DEL AVENTURERO</h3>
+                <div style="max-height:120px; overflow-y:auto; font-size:1rem; margin-bottom:10px;">
+                    ${(char.inventory || []).map((it, i) => `
+                        <div style="padding:5px 0;"><label><input type="checkbox" onchange="window.updateNPCGive(${i})"> ${it.name}</label></div>
+                    `).join('') || 'Mochila vacía'}
+                </div>
+                <div class="coin-grid">
+                    <div class="coin-unit"><span class="coin-cp">CP</span><span>${char.wallet.cp}</span></div>
+                    <div class="coin-unit"><span class="coin-sp">SP</span><span>${char.wallet.sp}</span></div>
+                    <div class="coin-unit"><span class="coin-gp">GP</span><span>${char.wallet.gp}</span></div>
+                    <div class="coin-unit"><span class="coin-pp">PP</span><span>${char.wallet.pp}</span></div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin:0; background:#000; border:1px solid var(--gold);">
+                <h3 style="font-size:0.9rem; color:var(--gold);">RECOMPENSA DEL NPC</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                    <input type="number" placeholder="CP" oninput="activeTrade.receiveCoins.cp=this.value">
+                    <input type="number" placeholder="GP" oninput="activeTrade.receiveCoins.gp=this.value">
+                </div>
+                <input type="text" id="npc-item-search" placeholder="Añadir ítem..." onkeyup="window.searchNPCItems()">
+                <div id="npc-search-results" style="font-size:0.9rem; color:var(--gold); margin-bottom:10px;"></div>
+                <div id="npc-pending-items" style="font-size:0.9rem; color:#aaa;"></div>
+            </div>
+        </div>
+
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button id="btn-npc-p1" onclick="window.confirmNPCPart(1)" class="btn-secondary" style="flex:1;">SELLAR NPC</button>
+            <button id="btn-npc-p2" onclick="window.confirmNPCPart(2)" class="btn-secondary" style="flex:1;">SELLAR JUGADOR</button>
+        </div>
+        <button id="btn-npc-exec" onclick="window.executeNPCTrade()" class="btn-primary" style="display:none; margin-top:15px;">CERRAR TRATO</button>
+    `);
+}
+
+function updateNPCGive(idx) {
+    if (!activeTrade) return;
+    if (activeTrade.giveItems.includes(idx)) activeTrade.giveItems = activeTrade.giveItems.filter(i => i !== idx);
+    else activeTrade.giveItems.push(idx);
+}
+
+function searchNPCItems() {
+    const q = document.getElementById('npc-item-search').value.toLowerCase();
+    const res = document.getElementById('npc-search-results');
+    if (q.length < 2) return res.innerHTML = '';
+    res.innerHTML = `<div onclick="window.addNPCItem('${document.getElementById('npc-item-search').value}')" style="color:white; cursor:pointer; padding:8px;">+ [Crear]: ${document.getElementById('npc-item-search').value}</div>`;
+}
+
+function addNPCItem(name) {
+    if (!activeTrade) return;
+    activeTrade.receiveItems.push(name);
+    document.getElementById('npc-pending-items').innerHTML = activeTrade.receiveItems.map(i => `• ${i}`).join('<br>');
+}
+
+function confirmNPCPart(n) {
+    if (!activeTrade) return;
+    if (n === 1) { activeTrade.p1Confirmed = true; document.getElementById('btn-npc-p1').style.background = 'var(--success)'; }
+    if (n === 2) { activeTrade.p2Confirmed = true; document.getElementById('btn-npc-p2').style.background = 'var(--success)'; }
+    if (activeTrade.p1Confirmed && activeTrade.p2Confirmed) document.getElementById('btn-npc-exec').style.display = 'block';
+}
+
+function executeNPCTrade() {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    const char = camp.party.find(p => p.id == activeTrade.charId);
+    
+    activeTrade.giveItems.sort((a,b) => b-a).forEach(idx => char.inventory.splice(idx, 1));
+    
+    char.wallet.cp += parseInt(activeTrade.receiveCoins.cp) || 0;
+    char.wallet.gp += parseInt(activeTrade.receiveCoins.gp) || 0;
+    
+    activeTrade.receiveItems.forEach(name => char.inventory.push({ name, weight: 1 }));
+    
+    saveAll(); closeModal(); renderParty(); renderMasterEye();
+}
+
+// --- GLOBAL BINDINGS ---
+window.showTab = showTab;
+window.selectCampaign = selectCampaign;
+window.exitToLobby = exitToLobby;
+window.showCampaignForm = showCampaignForm;
+window.saveCampaign = saveCampaign;
+window.confirmDeleteCampaign = confirmDeleteCampaign;
+window.deleteCampaign = deleteCampaign;
+window.closeModal = closeModal;
+window.openGlobalNoticeModal = openGlobalNoticeModal;
+window.postGlobalNotice = postGlobalNotice;
+window.addMission = addMission;
+window.deleteMission = deleteMission;
+window.searchMonsters = searchMonsters;
+window.showMonsterModal = showMonsterModal;
+window.goToLootFromMonster = goToLootFromMonster;
+window.markAsRead = markAsRead;
+window.copyInviteCode = copyToClipboard;
+window.showJoinForm = () => openModal(`
+    <h2 class="cinzel">Unirse a Aventura</h2>
+    <input type="text" id="join-code" placeholder="camp_...">
+    <button onclick="window.joinCampaign()" class="btn-primary">UNIRSE</button>
+`);
+window.joinCampaign = () => {
+    const code = document.getElementById('join-code').value.trim();
+    if (!code) return;
+    campaigns.push({ id: code, name: "Aventura Invitada", party: [], notices: [], isJoined: true });
+    saveAll(); renderLobby(); closeModal();
 };
+window.reclaimMaster = (id) => {
+    let camp = campaigns.find(c => c.id === id);
+    if (camp) { camp.isJoined = false; saveAll(); location.reload(); }
+};
+
+window.showCharForm = showCharForm;
+window.createCharacter = createCharacter;
+window.renderParty = renderParty;
+window.toggleInventory = toggleInventory;
+window.generateEncounter = generateEncounter;
+window.generateLoot = generateLoot;
+window.executeLootAssign = executeLootAssign;
+window.openNPCTrade = openNPCTrade;
+window.updateNPCGive = updateNPCGive;
+window.searchNPCItems = searchNPCItems;
+window.addNPCItem = addNPCItem;
+window.confirmNPCPart = confirmNPCPart;
+window.executeNPCTrade = executeNPCTrade;
+
+document.addEventListener('DOMContentLoaded', init);
