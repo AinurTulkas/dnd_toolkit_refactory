@@ -9,84 +9,68 @@
     --charcoal: #1a1a1a;
 }
 
-* { box-sizing: border-box; }
-
 body {
     margin: 0; background: var(--bg-dark); color: var(--text-light);
-    font-family: 'Inter', sans-serif; font-size: 16px;
-    line-height: 1.6; padding-bottom: 90px;
+    font-family: 'Inter', sans-serif; font-size: 18px;
+    line-height: 1.6;
 }
 
-h1, h2, h3, .cinzel { font-family: 'Cinzel', serif; color: var(--gold); text-transform: uppercase; letter-spacing: 2px; }
+h1, h2, h3, .cinzel { font-family: 'Cinzel', serif; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
 
 .card {
     background: var(--card-bg); border: 1px solid #333;
     padding: 25px; border-radius: 12px; margin-bottom: 25px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
 
 .btn-primary {
     background: linear-gradient(145deg, var(--danger), #5a0000); 
     color: white; border: 1px solid var(--gold-muted);
-    padding: 15px; border-radius: 8px; cursor: pointer;
+    padding: 15px 25px; border-radius: 8px; cursor: pointer;
     font-weight: bold; width: 100%; font-family: 'Cinzel';
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
 }
+.btn-primary:active { transform: scale(0.98); }
 
 .btn-secondary {
     background: var(--charcoal); color: var(--gold); border: 1px solid var(--gold-muted);
-    padding: 12px; border-radius: 8px; cursor: pointer; font-family: 'Cinzel';
+    padding: 12px 20px; border-radius: 8px; cursor: pointer; 
+    font-size: 1rem; font-family: 'Cinzel';
 }
 
 #modal-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.95); backdrop-filter: blur(10px);
-    z-index: 10000; display: none; align-items: center; justify-content: center; padding: 15px;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+    z-index: 10000; display: none; align-items: center; justify-content: center; padding: 20px;
 }
 .modal-content {
     background: var(--card-bg); border: 2px solid var(--gold);
-    width: 100%; max-width: 480px; border-radius: 15px;
-    padding: 25px; max-height: 90vh; overflow-y: auto;
-    box-shadow: 0 0 40px rgba(197, 160, 89, 0.2);
-    position: relative;
+    width: 100%; max-width: 500px; border-radius: 15px;
+    padding: 25px; position: relative; max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 0 30px rgba(197, 160, 89, 0.2);
 }
 
-.coin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; text-align: center; }
-.coin-cp { color: #cd7f32; } .coin-sp { color: #c0c0c0; } .coin-gp { color: #ffd700; } .coin-pp { color: #e5e4e2; }
+.coin-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; text-align: center; font-size: 0.75rem; margin-top: 5px; }
+.coin-unit { display: flex; flex-direction: column; align-items: center; }
+.coin-cp { color: #cd7f32; } .coin-sp { color: #c0c0c0; } .coin-ep { color: #50c878; } .coin-gp { color: #ffd700; } .coin-pp { color: #e5e4e2; }
+
+.wax-seal {
+    width: 24px; height: 24px; border-radius: 50%; display: inline-block;
+    margin-left: -8px; border: 1px solid rgba(0,0,0,0.3);
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+    background: #8b0000;
+}
+
+#master-eye { 
+    background: #000; border-bottom: 1px solid var(--gold-muted);
+    padding: 10px 20px; font-size: 0.8rem; display: flex; justify-content: space-between;
+    color: var(--gold); font-family: 'Cinzel';
+}
 
 input, select, textarea {
     background: #000; border: 1px solid #444; color: white;
-    padding: 14px; border-radius: 8px; width: 100%; margin-bottom: 15px;
+    padding: 15px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 20px;
     font-size: 1rem;
 }
 
-nav {
-    position: fixed; bottom: 0; width: 100%; background: #000;
-    border-top: 1px solid var(--gold-muted); display: flex; justify-content: space-around;
-    padding: 10px 0; z-index: 900;
-}
-nav button {
-    background: none; border: none; color: #666; font-size: 0.75rem;
-    display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
-}
-nav button.active { color: var(--gold); }
-nav i { font-size: 1.4rem; }
-
-/* Ritual D20 */
-.d20-visual {
-    width: 100px; height: 100px; margin: 20px auto; background: var(--charcoal);
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    border: 2px solid var(--gold); display: flex; align-items: center; justify-content: center;
-    font-size: 2.5rem; color: var(--gold); font-family: 'Cinzel';
-}
-.wax-seal {
-    width: 22px; height: 22px; border-radius: 50%; display: inline-block;
-    background: #8b0000; margin-left: -6px; border: 1px solid rgba(0,0,0,0.4);
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-}
-.master-eye-bar {
-    background: #000; border-bottom: 1px solid var(--gold-muted);
-    padding: 8px 15px; font-size: 0.75rem; color: var(--gold);
-    display: flex; justify-content: space-between; align-items: center;
-    font-family: 'Cinzel';
-}
+* { box-sizing: border-box; }

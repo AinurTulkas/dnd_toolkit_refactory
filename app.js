@@ -1,22 +1,13 @@
-// --- ESTADO GLOBAL ---
-const XP_TABLE = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
-const CONTAINERS = [
-    "Cajita rota", "Vaso con doble fondo", "Alcancía de barro", "Saco de arpillera remendado", 
-    "Alfolí de cuero viejo", "Cofre de pino astillado", "Bote de cerámica sellado", "Joyero de madera de sándalo", 
-    "Estuche de pergamino reforzado", "Caja de munición oxidada", "Zurrón manchado de grasa", "Baúl con restos de moho", 
-    "Arqueta de bronce verde", "Botella de vidrio opaco", "Fardo atado con cuerdas", "Escondite tras baldosa suelta", 
-    "Orinal de plata", "Cofre de hierro remachado", "Maletín de boticario", "Caja de puros vacía", 
-    "Barrilito de arenques falso", "Estatua hueca", "Libro hueco", "Calcetín de lana gorda", 
-    "Bolsa de seda deshilachada", "Cofre de viaje", "Cofrecillo de marfil", "Urna funeraria", 
-    "Cesta de mimbre con doble fondo", "Caja de herramientas"
-];
+// --- ESTADO ---
+let userTier = JSON.parse(localStorage.getItem('dnd_user_tier')) || { level: 'free', maxParties: 6, rolls: [] };
+function saveTier() { localStorage.setItem('dnd_user_tier', JSON.stringify(userTier)); }
 
-let userTier = JSON.parse(localStorage.getItem('dnd_user_tier')) || { level: 'free', maxParties: 6 };
 let campaigns = JSON.parse(localStorage.getItem('dnd_campaigns')) || [];
 let globalNotices = JSON.parse(localStorage.getItem('dnd_global_notices')) || [];
 let currentCampaignId = localStorage.getItem('dnd_current_campaign') || null;
 let currentRole = localStorage.getItem('dnd_role') || 'master';
 let srdData = { classes: [], races: [], monsters: [], items: [], weapons: [] };
+let activeTrade = null;
 let lastGeneratedLoot = null;
 
 function saveAll() {
@@ -24,10 +15,29 @@ function saveAll() {
     localStorage.setItem('dnd_global_notices', JSON.stringify(globalNotices));
     localStorage.setItem('dnd_current_campaign', currentCampaignId || "");
     localStorage.setItem('dnd_role', currentRole);
-    localStorage.setItem('dnd_user_tier', JSON.stringify(userTier));
 }
 
-// --- MODALES ---
+// --- UTILIDADES ---
+function normalizeText(text) {
+    const numbers = { 'cero':0, 'uno':1, 'dos':2, 'tres':3, 'cuatro':4, 'cinco':5, 'seis':6, 'siete':7, 'ocho':8, 'nueve':9, 'diez':10 };
+    let clean = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (let [word, val] of Object.entries(numbers)) { clean = clean.replace(new RegExp(word, 'g'), val); }
+    return clean;
+}
+
+function isSpam(text) {
+    const clean = normalizeText(text);
+    const digits = clean.replace(/[^0-9]/g, '');
+    return digits.length >= 7; 
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        console.log("Copiado: " + text);
+    });
+}
+
+// --- MODAL SYSTEM ---
 function openModal(html) {
     const overlay = document.getElementById('modal-overlay');
     const body = document.getElementById('modal-body');
@@ -35,9 +45,12 @@ function openModal(html) {
     body.innerHTML = html;
     overlay.style.display = 'flex';
 }
-function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+function closeModal() { 
+    const overlay = document.getElementById('modal-overlay');
+    if (overlay) overlay.style.display = 'none'; 
+}
 
-// --- LOBBY Y RITUAL ---
+// --- LOBBY ---
 function init() {
     renderLobby();
     loadSRDData();
@@ -47,381 +60,142 @@ function init() {
 function renderLobby() {
     const container = document.getElementById('lobby-overlay');
     if (!container) return;
+    
     container.innerHTML = `
         <header style="padding:40px 20px; text-align:center;">
             <h1 style="font-size:3rem; margin:0; letter-spacing:4px;">GRIMOIRE PRO</h1>
-            <p style="color:var(--gold-muted); font-style:italic;">Asistente de Dungeon Master</p>
+            <p style="color:var(--gold-muted); font-style:italic;">Asistente para Dungeon Masters</p>
         </header>
         <div style="max-width:700px; margin:0 auto; padding:0 20px;">
             <div class="card">
-                <h2 class="cinzel">Tablón Global</h2>
-                <div id="global-board" style="max-height:200px; overflow-y:auto; background:#000; padding:15px; border-radius:8px;"></div>
-                <button onclick="window.showGlobalNoticeForm()" class="btn-secondary" style="width:100%; margin-top:10px; font-size:0.8rem;">+ ANUNCIO PP</button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h2 class="cinzel">Tablón Global</h2>
+                    <button onclick="window.openGlobalNoticeModal()" class="btn-secondary" style="font-size:0.8rem; border-color:var(--gold);">+ ANUNCIO PP</button>
+                </div>
+                <div id="global-board" style="max-height:250px; overflow-y:auto; background:#000; padding:15px; border-radius:8px;"></div>
             </div>
+
             <div class="card">
                 <h2 class="cinzel">Mis Campañas (Master)</h2>
                 <div id="master-campaigns"></div>
                 <button onclick="window.showCampaignForm()" class="btn-primary" style="margin-top:20px;">INICIAR NUEVA AVENTURA</button>
-                <button onclick="window.showRitual()" class="btn-secondary" style="width:100%; margin-top:10px; border-style:dashed;">[TEST] RITUAL DE ASCENSO</button>
+                <button onclick="window.rollForLimit()" class="btn-secondary" style="margin-top:10px; width:100%; border-style:dashed; border-color:var(--gold);">[TEST] PROBAR DADO D20</button>
             </div>
+
             <div class="card">
-                <h2 class="cinzel">Mis Aventuras (Jugador)</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h2 class="cinzel">Mis Aventuras (Jugador)</h2>
+                    <button onclick="window.showJoinForm()" class="btn-secondary" style="font-size:0.8rem; border-color:var(--gold);">+ UNIRSE</button>
+                </div>
                 <div id="player-campaigns"></div>
-                <button onclick="window.showJoinForm()" class="btn-secondary" style="width:100%; margin-top:10px;">+ UNIRSE A MESA</button>
             </div>
         </div>
     `;
     renderGlobalBoard();
     renderCampaignLists();
-    container.style.display = 'block';
-}
-
-function renderGlobalBoard() {
-    const res = document.getElementById('global-board');
-    if (!res) return;
-    res.innerHTML = globalNotices.map(n => `
-        <div style="border-bottom:1px solid #222; padding:10px 0;">
-            <b style="color:var(--gold); font-family:Cinzel;">${n.title}</b>
-            <p style="margin:5px 0; font-size:0.85rem; color:#aaa;">${n.text}</p>
-        </div>
-    `).join('') || '<p style="text-align:center; color:#444;">No hay anuncios mundiales.</p>';
+    document.getElementById('lobby-overlay').style.display = 'block';
 }
 
 function renderCampaignLists() {
     const mContainer = document.getElementById('master-campaigns');
     const pContainer = document.getElementById('player-campaigns');
+    if (!mContainer || !pContainer) return;
+    
     const masterCamps = campaigns.filter(c => !c.isJoined);
     const playerCamps = campaigns.filter(c => c.isJoined);
-    mContainer.innerHTML = masterCamps.map(c => renderCampaignItem(c, 'master')).join('') || '<p style="text-align:center; color:#444;">Sin campañas.</p>';
-    pContainer.innerHTML = playerCamps.map(c => renderCampaignItem(c, 'adventurer')).join('') || '<p style="text-align:center; color:#444;">Sin aventuras.</p>';
+    
+    if (masterCamps.length === 0) {
+        mContainer.innerHTML = '<p style="color:#444; font-style:italic; text-align:center;">No eres Master en ninguna campaña.</p>';
+    } else {
+        mContainer.innerHTML = masterCamps.map(c => renderCampaignItem(c, 'master')).join('');
+    }
+    
+    if (playerCamps.length === 0) {
+        pContainer.innerHTML = '<p style="color:#444; font-style:italic; text-align:center;">No te has unido a ninguna aventura.</p>';
+    } else {
+        pContainer.innerHTML = playerCamps.map(c => renderCampaignItem(c, 'adventurer')).join('');
+    }
 }
 
 function renderCampaignItem(c, role) {
-    const isM = role === 'master';
+    const isMaster = role === 'master';
     return `
-        <div class="campaign-item" style="background:var(--charcoal); padding:15px; border-radius:10px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; border:1px solid #333;">
-            <div onclick="window.selectCampaign('${c.id}', '${role}')" style="cursor:pointer; flex:1;">
+        <div class="campaign-item">
+            <div onclick="window.selectCampaign('${c.id}', '${role}')" style="flex:1; cursor:pointer;">
                 <h3 style="margin:0; color:var(--gold);">${c.name}</h3>
-                <p style="margin:0; font-size:0.75rem; color:#666;">${(c.party || []).length} Héroes • ${role.toUpperCase()}</p>
+                <p style="margin:0; font-size:0.8rem; color:#666;">${(c.party || []).length} Héroes • ${role.toUpperCase()}</p>
             </div>
-            <div style="display:flex; gap:15px;">
-                ${!isM ? `<i class="fa-solid fa-crown" onclick="window.reclaimMaster('${c.id}')" style="color:var(--gold); cursor:pointer;" title="Reclamar Trono"></i>` : ''}
-                ${isM ? `<i class="fa-solid fa-share-nodes" onclick="window.copyCode('${c.id}')" style="color:var(--gold); cursor:pointer;"></i>` : ''}
-                <i class="fa-solid fa-trash" onclick="window.confirmDelete('${c.id}')" style="color:var(--danger); cursor:pointer;"></i>
+            <div style="display:flex; gap:20px; font-size:1.4rem; align-items:center;">
+                ${!isMaster ? `<i class="fa-solid fa-crown" onclick="event.stopPropagation(); window.reclaimMaster('${c.id}')" style="color:var(--gold); cursor:pointer; font-size:1.1rem;" title="Reclamar Trono (Dungeon Master)"></i>` : ''}
+                ${isMaster ? `<i class="fa-solid fa-share-nodes" onclick="event.stopPropagation(); window.copyInviteCode('${c.id}')" style="color:var(--gold); cursor:pointer; font-size:1.1rem;" title="Copiar Código"></i>` : ''}
+                <i class="fa-solid fa-pen-to-square" onclick="event.stopPropagation(); window.showCampaignForm('${c.id}')" style="color:var(--gold); cursor:pointer;"></i>
+                <i class="fa-solid fa-trash" onclick="event.stopPropagation(); window.confirmDeleteCampaign('${c.id}')" style="color:var(--danger); cursor:pointer;"></i>
             </div>
         </div>
     `;
 }
 
-function selectCampaign(id, role = 'master') {
-    const camp = campaigns.find(c => c.id === id);
-    if (!camp) return;
-    currentCampaignId = id;
-    currentRole = role;
-    saveAll();
-    document.getElementById('lobby-overlay').style.display = 'none';
-    document.getElementById('campaign-title').innerText = camp.name;
-    document.getElementById('role-indicator').style.display = 'block';
-    document.getElementById('role-text').innerText = role.toUpperCase();
-    renderMasterEye();
-    renderNavigation();
-    renderParty();
-    renderLocalBoard();
-    showTab('tab-home');
+function copyInviteCode(id) {
+    copyToClipboard(id);
+    openModal(`
+        <h2 class="cinzel" style="text-align:center;">Código Copiado</h2>
+        <p style="text-align:center;">Envía este código a tus jugadores:</p>
+        <div style="background:#000; padding:15px; border-radius:8px; text-align:center; font-family:monospace; color:var(--gold); font-size:1.2rem; border:1px solid var(--gold-muted); margin:15px 0;">
+            ${id}
+        </div>
+        <button onclick="window.closeModal()" class="btn-primary">ENTENDIDO</button>
+    `);
 }
 
-function renderMasterEye() {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    if (!camp || currentRole !== 'master') {
-        const eye = document.getElementById('master-eye');
-        if (eye) eye.remove();
+function showJoinForm() {
+    openModal(`
+        <h2 class="cinzel">Unirse a Aventura</h2>
+        <p>Pega el código que te envió tu Dungeon Master:</p>
+        <input type="text" id="join-code" placeholder="camp_123456789...">
+        <button onclick="window.joinCampaign()" class="btn-primary">UNIRSE</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CANCELAR</button>
+    `);
+}
+
+function joinCampaign() {
+    const code = document.getElementById('join-code').value.trim();
+    if (!code) return;
+    
+    let camp = campaigns.find(c => c.id === code);
+    
+    if (camp && !camp.isJoined) {
+        openModal(`
+            <h2 class="cinzel" style="color:var(--gold);">Acceso Denegado</h2>
+            <p style="text-align:center;">Ya eres el Master de esta aventura. No puedes unirte como aventurero.</p>
+            <button onclick="window.closeModal()" class="btn-primary">ENTENDIDO</button>
+        `);
         return;
     }
-    let totals = { cp:0, sp:0, gp:0, pp:0 };
-    (camp.party || []).forEach(p => {
-        totals.cp += p.wallet.cp || 0;
-        totals.sp += p.wallet.sp || 0;
-        totals.gp += p.wallet.gp || 0;
-        totals.pp += p.wallet.pp || 0;
-    });
-    let eye = document.getElementById('master-eye');
-    if (!eye) {
-        eye = document.createElement('div');
-        eye.id = 'master-eye';
-        document.body.prepend(eye);
+
+    if (camp && camp.isJoined) {
+        openModal(`<p style="text-align:center;">Ya formas parte de esta aventura.</p>`);
+        return;
     }
-    eye.className = 'master-eye-bar';
-    eye.innerHTML = `<span>OJO DEL MASTER</span><div class="coin-grid" style="gap:10px;"><span class="coin-cp">${totals.cp}c</span><span class="coin-sp">${totals.sp}s</span><span class="coin-gp">${totals.gp}g</span><span class="coin-pp">${totals.pp}p</span></div>`;
+
+    campaigns.push({ id: code, name: "Aventura Invitada", party: [], notices: [], isJoined: true });
+    saveAll(); renderLobby(); closeModal();
 }
 
-// --- TABS ---
-function showTab(t) {
-    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-    document.getElementById(t).style.display = 'block';
-    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-    const btn = Array.from(document.querySelectorAll('nav button')).find(b => b.getAttribute('onclick').includes(t));
-    if (btn) btn.classList.add('active');
-}
-
-function renderNavigation() {
-    const nav = document.getElementById('main-nav');
-    const isM = currentRole === 'master';
-    nav.innerHTML = `
-        <button onclick="window.showTab('tab-home')"><i class="fa-solid fa-house"></i><span>Home</span></button>
-        ${isM ? `<button onclick="window.showTab('tab-combat')"><i class="fa-solid fa-bolt"></i><span>Batalla</span></button>` : ''}
-        ${isM ? `<button onclick="window.showTab('tab-botin')"><i class="fa-solid fa-coins"></i><span>Botín</span></button>` : ''}
-        <button onclick="window.showTab('tab-notices')"><i class="fa-solid fa-bullhorn"></i><span>Misiones</span></button>
-        <button onclick="window.showTab('tab-party')"><i class="fa-solid fa-users"></i><span>Gremio</span></button>
-    `;
-}
-
-// --- PERSONAJES ---
-const CLASS_GEAR = {
-    'Pícaro': { items: [{name:'Pack de Ladrón', weight:5}, {name:'Herramientas de Ladrón', weight:1}, {name:'Armadura de Cuero', weight:10}, {name:'Daga', weight:1}, {name:'Raciones (10 días)', weight:20}], wallet: {gp:15} },
-    'Bardo': { items: [{name:'Pack de Artista', weight:5}, {name:'Laúd', weight:2}, {name:'Disfraz', weight:4}, {name:'Daga', weight:1}], wallet: {gp:10} },
-    'Clérigo': { items: [{name:'Pack de Sacerdote', weight:8}, {name:'Símbolo Sagrado', weight:0.5}, {name:'Cota de Malla', weight:40}, {name:'Escudo', weight:6}], wallet: {gp:5} },
-    'Mago': { items: [{name:'Pack de Erudito', weight:3}, {name:'Libro de Conjuros', weight:3}, {name:'Bastón Arcano', weight:4}], wallet: {gp:10} },
-    'default': { items: [{name:'Pack de Explorador', weight:7}, {name:'Antorchas (10)', weight:10}, {name:'Raciones (5 días)', weight:10}], wallet: {gp:10} }
-};
-
-function showCharForm() {
-    const races = srdData.races.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
-    const classes = srdData.classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    openModal(`
-        <h2 class="cinzel">Nuevo Aventurero</h2>
-        <input type="text" id="char-name" placeholder="Nombre...">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <select id="char-race">${races || '<option>Humano</option>'}</select>
-            <select id="char-class">${classes || '<option>Guerrero</option>'}</select>
-        </div>
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px;">
-            <div style="text-align:center;"><small>STR</small><input type="number" id="s-str" value="10"></div>
-            <div style="text-align:center;"><small>DEX</small><input type="number" id="s-dex" value="10"></div>
-            <div style="text-align:center;"><small>CON</small><input type="number" id="s-con" value="10"></div>
-            <div style="text-align:center;"><small>INT</small><input type="number" id="s-int" value="10"></div>
-            <div style="text-align:center;"><small>WIS</small><input type="number" id="s-wis" value="10"></div>
-            <div style="text-align:center;"><small>CHA</small><input type="number" id="s-cha" value="10"></div>
-        </div>
-        <button onclick="window.createCharacter()" class="btn-primary" style="margin-top:20px;">FORJAR HÉROE</button>
-    `);
-}
-
-function createCharacter() {
-    const name = document.getElementById('char-name').value.trim();
+function saveCampaign(id) {
+    const name = document.getElementById('form-camp-name').value.trim();
     if (!name) return;
-    const cls = document.getElementById('char-class').value;
-    const gear = CLASS_GEAR[cls] || CLASS_GEAR['default'];
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    camp.party.push({ 
-        id: Date.now(), name, class: cls, race: document.getElementById('char-race').value,
-        level: 1, xp: 0,
-        stats: { 
-            str: parseInt(document.getElementById('s-str').value), 
-            dex: parseInt(document.getElementById('s-dex').value), 
-            con: parseInt(document.getElementById('s-con').value), 
-            int: parseInt(document.getElementById('s-int').value), 
-            wis: parseInt(document.getElementById('s-wis').value), 
-            cha: parseInt(document.getElementById('s-cha').value) 
-        },
-        inventory: gear.items.map(it => ({...it, id: Math.random()})),
-        wallet: { cp: 0, sp: 0, ep: 0, gp: gear.wallet.gp || 0, pp: 0 }
-    });
-    saveAll(); renderParty(); renderMasterEye(); closeModal();
-}
-
-function renderParty() {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const res = document.getElementById('character-list');
-    if (!res) return;
-    res.innerHTML = (camp.party || []).map(c => {
-        const totalW = c.inventory.reduce((s, i) => s + (i.weight || 0), 0);
-        const maxW = (c.stats.str || 10) * 15;
-        return `
-            <div class="card" style="border-left:4px solid ${totalW > maxW ? 'var(--danger)' : 'var(--gold)'}">
-                <div style="display:flex; justify-content:space-between; align-items:start;">
-                    <div>
-                        <h3 style="margin:0;">${c.name} <span style="font-size:0.6rem; background:var(--gold); color:black; padding:2px 5px; border-radius:3px; vertical-align:middle;">LVL ${c.level}</span></h3>
-                        <p style="margin:0; font-size:0.8rem; color:#888;">${c.race} ${c.class} • XP: ${c.xp}</p>
-                    </div>
-                    <div style="text-align:right; font-size:0.7rem;">CARGA: ${totalW.toFixed(1)} / ${maxW} lb</div>
-                </div>
-                <div class="coin-grid" style="margin-top:10px; font-size:0.85rem;">
-                    <span class="coin-cp">${c.wallet.cp}c</span>
-                    <span class="coin-sp">${c.wallet.sp}s</span>
-                    <span class="coin-gp">${c.wallet.gp}g</span>
-                    <span class="coin-pp">${c.wallet.pp}p</span>
-                </div>
-                <div style="margin-top:12px; background:#000; padding:12px; border-radius:8px; font-size:0.85rem; border:1px solid #222;">
-                    <b style="color:var(--gold); font-size:0.65rem; font-family:Cinzel;">MOCHILA:</b><br>
-                    ${c.inventory.map((it, idx) => `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                            <span>• ${it.name} (${it.weight}lb)</span>
-                            <i class="fa-solid fa-pen" onclick="window.editItem(${c.id}, ${idx})" style="cursor:pointer; font-size:0.7rem; color:var(--gold-muted);"></i>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }).join('') || '<p style="text-align:center; color:#444;">Sin aventureros.</p>';
-}
-
-function editItem(charId, idx) {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const char = camp.party.find(p => p.id == charId);
-    const it = char.inventory[idx];
-    openModal(`
-        <h2 class="cinzel">Editar Objeto</h2>
-        <input type="text" id="edit-n" value="${it.name}">
-        <input type="number" id="edit-w" value="${it.weight}">
-        <button onclick="window.saveItemEdit(${charId}, ${idx})" class="btn-primary">GUARDAR</button>
-        <button onclick="window.deleteItem(${charId}, ${idx})" class="btn-secondary" style="width:100%; margin-top:10px; color:var(--danger);">ELIMINAR</button>
-    `);
-}
-
-function saveItemEdit(charId, idx) {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const char = camp.party.find(p => p.id == charId);
-    char.inventory[idx].name = document.getElementById('edit-n').value;
-    char.inventory[idx].weight = parseFloat(document.getElementById('edit-w').value);
-    saveAll(); renderParty(); closeModal();
-}
-
-function deleteItem(charId, idx) {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const char = camp.party.find(p => p.id == charId);
-    char.inventory.splice(idx, 1);
-    saveAll(); renderParty(); closeModal();
-}
-
-// --- MISIONES ---
-function renderLocalBoard() {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const res = document.getElementById('local-board');
-    if (!res || !camp) return;
-    res.innerHTML = (camp.notices || []).map((n, i) => `
-        <div class="card" style="background:#0a0a0a; border-left:3px solid var(--danger);">
-            <div style="display:flex; justify-content:space-between;">
-                <h3 style="margin:0;">${n.title}</h3>
-                ${currentRole === 'master' ? `<i class="fa-solid fa-trash" onclick="window.deleteMission(${i})" style="color:var(--danger); cursor:pointer;"></i>` : ''}
-            </div>
-            <p style="margin:10px 0; font-size:0.95rem; color:#ccc; white-space:pre-wrap;">${n.text}</p>
-            <div style="border-top:1px solid #222; padding-top:10px;">
-                ${(n.readBy || []).map(() => `<div class="wax-seal"></div>`).join('')}
-                ${currentRole === 'adventurer' ? `<button onclick="window.markRead(${i})" class="btn-secondary" style="font-size:0.6rem; padding:4px 10px;">SELLAR LECTURA</button>` : ''}
-            </div>
-        </div>
-    `).join('') || '<p style="text-align:center; color:#444;">Sin misiones activas.</p>';
-}
-
-function addMission() {
-    const t = document.getElementById('mission-title').value.trim();
-    const x = document.getElementById('mission-text').value.trim();
-    if (!t || !x) return;
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    if (!camp.notices) camp.notices = [];
-    camp.notices.unshift({title: t, text: x, readBy: [], date: Date.now()});
-    saveAll(); renderLocalBoard();
-    document.getElementById('mission-title').value = '';
-    document.getElementById('mission-text').value = '';
-}
-
-function deleteMission(i) {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    camp.notices.splice(i, 1);
-    saveAll(); renderLocalBoard();
-}
-
-// --- COMBATE Y REPARTO ---
-function generateEncounter(diff) {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    if (!camp || !camp.party.length) return alert('No hay héroes.');
-    const avg = camp.party.reduce((s, p) => s + p.level, 0) / camp.party.length;
-    let min, max;
-    if (diff === 'hard') { min = avg + 1; max = avg + 3; }
-    else { min = Math.max(0, avg - 1); max = avg; }
-    const matches = srdData.monsters.filter(m => eval(m.cr) >= min && eval(m.cr) <= max);
-    const m = matches[Math.floor(Math.random() * matches.length)] || srdData.monsters[0];
-    openModal(`
-        <h2 class="cinzel" style="color:var(--gold);">${m.name}</h2>
-        <p style="text-align:center;">CR: ${m.cr} | HP: ${m.hp} | CA: ${m.ac}</p>
-        <button onclick="window.generateLoot('${m.cr}', '${m.type}', '${m.name}', true)" class="btn-primary">DERROTAR CRIATURA</button>
-    `);
-}
-
-function generateLoot(crStr, type, name, isBattle) {
-    const cr = eval(crStr);
-    const xp = isBattle ? (Math.floor(cr * 200) || 50) : 0;
-    let title = name;
-    if (!isBattle) {
-        title = CONTAINERS[Math.floor(Math.random() * CONTAINERS.length)];
+    if (id) {
+        const camp = campaigns.find(c => c.id === id);
+        if (camp) camp.name = name;
+    } else {
+        campaigns.push({ id: 'camp_' + Date.now(), name, party: [], notices: [] });
     }
-    const coins = { cp: Math.floor(Math.random() * 50 * cr), sp: Math.floor(Math.random() * 20 * cr), gp: Math.floor(Math.random() * 10 * cr) };
-    const items = [];
-    if (Math.random() > 0.4) items.push({name: isBattle ? `Botín de ${name}` : `Hallazgo en ${title}`, weight: 1});
-    lastGeneratedLoot = { coins, items, xp, source: title };
+    saveAll(); renderLobby(); closeModal();
+}
+
+function confirmDeleteCampaign(id) {
+    const camp = campaigns.find(c => c.id === id);
+    if (!camp) return;
     openModal(`
-        <h2 class="cinzel">${title}</h2>
-        <div style="text-align:center; padding:10px;">
-            <p style="color:var(--gold); font-size:1.2rem;">${coins.cp}c, ${coins.sp}s, ${coins.gp}g</p>
-            <p style="color:#aaa;">XP: ${xp}</p>
-            ${items.map(i=>`<p>• ${i.name}</p>`).join('')}
-        </div>
-        <button onclick="window.executeReparto()" class="btn-primary">REPARTIR ENTRE TODOS</button>
-    `);
-}
-
-function executeReparto() {
-    const camp = campaigns.find(c => c.id === currentCampaignId);
-    const { coins, items, xp } = lastGeneratedLoot;
-    const pCount = camp.party.length || 1;
-    camp.party.forEach(p => {
-        p.xp += Math.floor(xp / pCount);
-        p.wallet.cp += Math.floor(coins.cp / pCount);
-        p.wallet.sp += Math.floor(coins.sp / pCount);
-        p.wallet.gp += Math.floor(coins.gp / pCount);
-        for(let i=0; i<XP_TABLE.length; i++) { if(p.xp >= XP_TABLE[i]) p.level = i+1; else break; }
-    });
-    if (!camp.lastRecipientIdx) camp.lastRecipientIdx = 0;
-    items.forEach(it => {
-        const recipient = camp.party[camp.lastRecipientIdx % pCount];
-        recipient.inventory.push({...it});
-        camp.lastRecipientIdx++;
-    });
-    saveAll(); closeModal(); renderParty(); renderMasterEye();
-    openModal(`<h2 class="cinzel">Reparto Hecho</h2><p style="text-align:center;">El botín ha sido entregado a los aventureros.</p><button onclick="window.closeModal()" class="btn-primary">LISTO</button>`);
-}
-
-// --- SRD Y LOBBY BINDINGS ---
-async function loadSRDData() {
-    try { const r = await fetch('data/srd_data.json'); srdData = await r.json(); } catch(e) {}
-}
-
-function exitToLobby() { currentCampaignId = null; saveAll(); location.reload(); }
-
-window.showTab = showTab;
-window.selectCampaign = selectCampaign;
-window.exitToLobby = exitToLobby;
-window.showCharForm = showCharForm;
-window.createCharacter = createCharacter;
-window.renderParty = renderParty;
-window.editItem = editItem;
-window.saveItemEdit = saveItemEdit;
-window.deleteItem = deleteItem;
-window.addMission = addMission;
-window.deleteMission = deleteMission;
-window.generateEncounter = generateEncounter;
-window.generateLoot = generateLoot;
-window.executeReparto = executeReparto;
-window.closeModal = closeModal;
-window.confirmDelete = (id) => { if(confirm('¿Borrar aventura?')) { campaigns = campaigns.filter(c=>c.id!==id); saveAll(); renderLobby(); } };
-window.showCampaignForm = () => openModal(`<h2 class="cinzel">Nueva Aventura</h2><input type="text" id="nc-n" placeholder="Nombre de la campaña..."><button onclick="window.saveNewCamp()" class="btn-primary">INICIAR</button>`);
-window.saveNewCamp = () => { const n = document.getElementById('nc-n').value; campaigns.push({id:'camp_'+Date.now(), name:n, party:[], notices:[], lastRecipientIdx:0}); saveAll(); renderLobby(); closeModal(); };
-window.copyCode = (id) => { navigator.clipboard.writeText(id); alert('Código de invitación copiado.'); };
-window.showJoinForm = () => openModal(`<h2 class="cinzel">Unirse</h2><input type="text" id="j-id" placeholder="Código de la mesa..."><button onclick="window.join()" class="btn-primary">ENTRAR</button>`);
-window.join = () => { const id = document.getElementById('j-id').value; campaigns.push({id, name:'Aventura Unida', party:[], notices:[], isJoined:true, lastRecipientIdx:0}); saveAll(); renderLobby(); closeModal(); };
-window.reclaimMaster = (id) => { const camp = campaigns.find(c=>c.id===id); if(camp){ camp.isJoined=false; saveAll(); location.reload(); } };
-window.showGlobalNoticeForm = () => openModal(`<h2 class="cinzel">Anuncio Mundial</h2><input type="text" id="gn-t" placeholder="Título..."><textarea id="gn-x" placeholder="Mensaje..."></textarea><button onclick="window.addGlobalNotice()" class="btn-primary">PUBLICA</button>`);
-window.addGlobalNotice = () => { const t = document.getElementById('gn-t').value; const x = document.getElementById('gn-x').value; globalNotices.unshift({title:t, text:x}); saveAll(); renderGlobalBoard(); closeModal(); };
-window.showRitual = () => openModal(`<div class="dice-ritual-area"><h2 class="cinzel">Ritual de Ascenso</h2><div class="d20-visual"><i class="fa-solid fa-dice-d20"></i></div><p style="font-size:0.8rem;">[Toca el dado para iniciar el ritual]</p><button onclick="window.closeModal()" class="btn-secondary" style="margin-top:20px; width:100%;">CERRAR</button></div>`);
-
-document.addEventListener('DOMContentLoaded', init);
+        <h2 class="cinzel" style="color:var(--danger);">¿Borrar Aventura?</h2>
+        <p style="text-align:center;">U2UgZWxpbWluYXLDoSAnJHtjLm5hbWV9JyB5IHRvZG9zIHN1cyBkYXRvcyBwZXJtYW5lbnRlbWVudGUuPC9wPgogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LmRlbGV0ZUNhbXBhaWduKCcke2lkfScpIiBjbGFzcz0iYnRuLXByaW1hcnkiPkJPUlJBUjwvYnV0dG9uPgogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LmNsb3NlTW9kYWwoKSIgY2xhc3M9ImJ0bi1zZWNvbmRhcnkiIHN0eWxlPSJtYXJnaW4tdG9wOjE1cHg7IHdpZHRoOjEwMCU7Ij5DQU5DRUxBUjwvYnV0dG9uPgogICAgYCk7Cn0KCmZ1bmN0aW9uIGRlbGV0ZUNhbXBhaWduKGlkKSB7CiAgICBjYW1wYWlnbnMgPSBjYW1wYWlnbnMuZmlsdGVyKGMgPT4gYy5pZCAhPT0gaWQpOwogICAgaWYgKGN1cnJlbnRDYW1wYWlnbklkID09PSBpZCkgY3VycmVudENhbXBhaWduSWQgPSBudWxsOwogICAgc2F2ZUFsbCgpOyByZW5kZXJMb2JieSgpOyBjbG9zZU1vZGFsKCk7Cn0KCmZ1bmN0aW9uIHNlbGVjdENhbXBhaWduKGlkLCByb2xlID0gJ21hc3RlcicpIHsKICAgIGNvbnN0IGNhbXAgPSBjYW1wYWlnbnMuZmluZChjID0+IGMuaWQgPT09IGlkKTsKICAgIGlmICghY2FtcCkgcmV0dXJuOwogICAgY3VycmVudENhbXBhaWduSWQgPSBpZDsKICAgIGN1cnJlbnRSb2xlID0gcm9sZTsKICAgIHNhdmVBbGwoKTsKICAgIAogICAgY29uc3QgbG9iYnkgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbG9iYnktb3ZlcmxheScpOwogICAgaWYgKGxvYmJ5KSBsb2JieS5zdHlsZS5kaXNwbGF5ID0gJ25vbmUnOwogICAgCiAgICBjb25zdCBpbmRpY2F0b3IgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncm9sZS1pbmRpY2F0b3InKTsKICAgIGlmIChpbmRpY2F0b3IpIHsKICAgICAgICBpbmRpY2F0b3Iuc3R5bGUuZGlzcGxheSA9ICdpbmxpbmUtYmxvY2snOwogICAgICAgIGluZGljYXRvci5pbm5lckhUTUwgPSBgTU9ETzogPHNwYW4gaWQ9InJvbGUtdGV4dCI+JHtyb2xlLnRvVXBwZXJDYXNlKCl9PC9zcGFuPmA7CiAgICB9CiAgICAKICAgIGNvbnN0IHRpdGxlID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NhbXBhaWduLXRpdGxlJyk7CiAgICBpZiAodGl0bGUpIHRpdGxlLmlubmVyVGV4dCA9IGNhbXAubmFtZTsKICAgIAogICAgcmVuZGVyTWFzdGVyRXllKCk7CiAgICByZW5kZXJOYXZpZ2F0aW9uKCk7CiAgICByZW5kZXJMb2NhbEJvYXJkKCk7CiAgICByZW5kZXJQYXJ0eSgpOwogICAgc2hvd1RhYigndGFiLWhvbWUnKTsKfQoKZnVuY3Rpb24gZXhpdFRvTG9iYnkoKSB7IAogICAgY3VycmVudENhbXBhaWduSWQgPSBudWxsOyAKICAgIHNhdmVBbGwoKTsgCiAgICBsb2NhdGlvbi5yZWxvYWQoKTsgCn0KCi8vIC0tLSBNQVNURVIgRVlFIC0tLQpmdW5jdGlvbiByZW5kZXJNYXN0ZXJFeWUoKSB7CiAgICBjb25zdCBjYW1wID0gY2FtcGFpZ25zLmZpbmQoYyA9PiBjLmlkID09PSBjdXJyZW50Q2FtcGFpZ25JZCk7CiAgICBpZiAoIWNhbXAgfHwgY3VycmVudFJv bGUgPT09ICdtYXN0ZXInKSB7CiAgICAgICAgY29uc3QgZXllID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ21hc3Rlci1leWUnKTsKICAgICAgICBpZiAoZXllKSBleWUuc3R5bGUuZGlzcGxheSA9ICdub25lJzsKICAgICAgICByZXR1cm47CiAgICB9CiAgICAKICAgIGxldCB0b3RhbHMgPSB7IGNwOjAsIHNwOjAsIGVwOjAsIGdwOjAsIHBwOjAgfTsKICAgIChjYW1wLnBhcnR5IHx8IFtdKS5mb3JFYWNoKHAgPT4gewogICAgICAgIGlmICghcC53YWxsZXQpIHJldHVybjsKICAgICAgICB0b3RhbHMuY3AgKz0gcC53YWxsZXQuY3AgfHwgMDsKICAgICAgICB0b3RhbHMuc3AgKz0gcC53YWxsZXQuc3AgfHwgMDsKICAgICAgICB0b3RhbHMuZXAgKz0gcC53YWxsZXQuZXAgfHwgMDsKICAgICAgICB0b3RhbHMuZ3AgKz0gcC53YWxsZXQuZ3AgfHwgMDsKICAgICAgICB0b3RhbHMucHAgKz0gcC53YWxsZXQucHAgfHwgMDsKICAgIH0pOwoKICAgIGxldCBleWVBcmVhID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ21hc3Rlci1leWUnKTsKICAgIGlmICghZXllQXJlQSkgewogICAgICAgIGV5ZUFyZWEgPSBkb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTsKICAgICAgICBleWVBcmVhLmlkID0gJ21hc3Rlci1leWUnOwogICAgICAgIGRvY3VtZW50LmJvZHkucHJlcGVuZChleWVBcmVhKTsKICAgIH0KICAgIGV5ZUFyZWEuY2xhc3NOYW1lID0gJ21hc3Rlci1leWUtYmFyJzsKICAgIGV5ZUFyZWEuc3R5bGUuZGlzcGxheSA9ICdmbGV4JzsKICAgIGV5ZUFyZWEuaW5uZXJIVE1MID0gYAogICAgICAgIDxzcGFuPk9KTyBERUwgTUFTVEVSOiBURVNPUk8gR1JVUEFMPC9zcGFuPgogICAgICAgIDxkaXYgc3R5bGU9ImRpc3BsYXk6ZmxleDsganVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47IGFsaWduLWl0ZW1zOmNlbnRlcjsiPgogICAgICAgICAgICA8c3BhbiBjbGFzcz0iY29pbi1jcCI+JHt0b3RhbHMuY3B9Yzwvc3Bhbj4KICAgICAgICAgICAgPHNwYW4gY2xhc3M9ImNvaW4tc3AiPiR7dG90YWxzLnNwfXM8L3NwYW4+CiAgICAgICAgICAgIDxzcGFuIGNsYXNzPSJjb2luLWdwIj4ke3RvdGFscy5ncH1nPC9zcGFuPgogICAgICAgICAgICA8c3BhbiBjbGFzcz0iY29pbi1wcCI+JHt0b3RhbHMucHB9cDwvc3Bhbj4KICAgICAgICA8L2Rpdj4KICAgIGA7Cn0KCi8vIC0tLSBOQVZFR0FDSU9OIC0tLQpmdW5jdGlvbiBzaG93VGFiKHQpIHsKICAgIGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJy50YWItY29udGVudCcpLmZvckVhY2goZWwgPT4gZWwuc3R5bGUuZGlzcGxheSA9ICdub25lJyk7CiAgICBjb25zdCB0YXJnZXQgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCh0KTsKICAgIGlmICh0YXJnZXQpIHRhcmdldC5zdHlsZS5kaXNwbGF5ID0gJ2Jsb2NrJzsKICAgIAogICAgZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnbmF2IGJ1dHRvbicpLmZvckVhY2goYiA9PiBiLmNsYXNzTGlzdC5yZW1vdmUoJ2FjdGl2ZScpKTsKICAgIGNvbnN0IG5hdkJ1dHRvbnMgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCduYXYgYnV0dG9uJyk7CiAgICBuYXZCdXR0b25zLmZvckVhY2goYnRuID0+IHsKICAgICAgICBpZiAoYnRuLm9uY2xpY2sudG9TdHJpbmcoKS5pbmNsdWRlcyh0KSkgYnRuLmNsYXNzTGlzdC5hZGQoJ2FjdGl2ZScpOwogICAgfSk7Cn0KCmZ1bmN0aW9uIHJlbmRlck5hdmlnYXRpb24oKSB7CiAgICBjb25zdCBuYXYgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbWFpbi1uYXYnKTsKICAgIGlmICghbmF2KSByZXR1cm47CiAgICBjb25zdCBpc00gPSBjdXJyZW50Um9sZSA9PT0gJ21hc3Rlcic7CiAgICBuYXYuaW5uZXJIVE1MID0gYAogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LnNob3dUYWIoJ3RhYi1ob21lJykiPjxpIGNsYXNzPSJmYS1zb2xpZCBmYS1ob3VzZSI+PC9pPjxzcGFuPkhvbWU8L3NwYW4+PC9idXR0b24+CiAgICAgICAgJHtpc00gPyBgPGJ1dHRvbiBvbmNsaWNrPSJ3aW5kb3cuc2hvd1RhYigndGFiLWNvbWJhdCcpIj48aSBjbGFzcz0iZmEtzb2xpZCBmYS1ib2x0Ij48L2k+PHNwYW4+QmF0YWxsYTwvc3Bhbj48L2J1dHRvbj5gIDogJychfQogICAgICAgICR7aXNNID8gYDxidXR0b24gb25jbGljaz0id2luZG93LnNob3dUYWIoJ3RhYi1ib3RpbicpIj48aSBjbGFzcz0iZmEtc29saWQgZmEtY29pbnMiPjwvaT48c3Bhbj5Cb3TDrW48L3NwYW4+PC9idXR0b24+YCA6ICcnfQogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LnNob3dUYWIoJ3RhYi1ub3RpY2VzJykiPjxpIGNsYXNzPSJmYS1zb2xpZCBmYS1idWxsaG9ybiI+PC9pPjxzcGFuPk1pc2lvbmVzPC9zcGFuPjwvYnV0dG9uPgogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LnNob3dUYWIoJ3RhYi1wYXJ0eScpIj48aSBjbGFzcz0iZmEtc29saWQgZmEtdXNlcnMiPjwvaT48c3Bhbj5HcmVtaW88L3NwYW4+PC9idXR0b24+CiAgICBgOwp9CgovLyAtLS0gVEFCTE9ORVMgLS0tCmZ1bmN0aW9uIHJlbmRlckdsb2JhbEJvYXJkKCkgewogICAgY29uc3QgcmVzID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2dsb2JhbC1ib2FyZCcpOwogICAgaWYgKCFyZXMpIHJldHVybjsKICAgIGNvbnN0IG5vdyA9IERhdGUubm93KCk7CiAgICBjb25zdCBmaWx0ZXJlZCA9IGdsb2JhbE5vdGljZXMuZmlsdGVyKG4gPT4gKG5vdyAtIChuLmRhdGUgfHwgMCkpIDwgKG4uZXhwaXJ5IHx8IDYwNDgwMDAwMCkpOwogICAgcmVzLmlubmVySFRNTCA9IGZpbHRlcmVkLm1hcCgobikgPT4gYAogICAgICAgIDxkaXYgc3R5bGU9ImJvcmRlci1ib3R0b206MXB4IHNvbGlkICMyMjI7IHBhZGRpbmc6MTVweCAwOyAke24ucGVuZGluZyA/ICdvcGFjaXR5OjAuNTsnIDogJychfSI+CiAgICAgICAgICAgIDxkaXYgc3R5bGU9ImRpc3BsYXk6ZmxleDsganVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47Ij4KICAgICAgICAgICAgICAgIDxwIHN0eWxlPSJtYXJnaW46MDsgY29sb3I6dmFyKC0tZ29sZCk7IGZvbnQtZmFtaWx5OkNpbnplbDsiPjxiPiR7bi50aXRsZX08L2I+PC9wPgogICAgICAgICAgICAgICAgJHtuLnBlbmRpbmcgPyAnPHNwYW4gc3R5bGU9ImNvbG9yOm9yYW5nZTsgZm9udC1zaXplOjAuN3JlbTsiPltSRVZJU0nDkk5dPC9zcGFuPicgOiAnJ30KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxwIHN0eWxlPSJtYXJnaW46NXB4IDAgMCAwOyBmb250LXNpemU6MC45cmVtOyBjb2xvcjojYWFhOyI+JHtuLnRleHR9PC9wPgogICAgICAgIDwvZGl2PgogICAgYCkuam9pbihfKSB8fCAnPHAgc3R5bGU9ImNvbG9yOiM0NDQ7IGZvbnQtc2l6ZTowLjhyZW07IHRleHQtYWxpZ246Y2VudGVyOyI+Tm8gaGF5IGFudW5jaW9zIG11bmRpYWxlcy48L3A+JzsKfQoKZnVuY3Rpb24gb3Blbkdsb2JhbE5vdGljZU1vZGFsKCkgewogICAgb3Blbk1vZGFsKGAKICAgICAgICA8aDIgY2xhc3M9ImNpbnplbCI+QW51bmNpbyBNdW5kaWFsPC9oMj4KICAgICAgICA8aW5wdXQgdHlwZT0idGV4dCIgaWQ9ImctdGl0bGUiIHBsYWNlaG9sZGVyPSJUw610dWxvIChlajogU2UgYnVzY2FuIEp1Z2Fkb3JlcykiPgogICAgICAgIDx0ZXh0YXJlYSBpZD0iZy10ZXh0IiBwbGFjZWhvbGRlcj0iVHUgbWVuc2FqZS4uLiIgc3R5bGU9ImhlaWdodDoxMjBweDsiPjwvdGV4dGFyZWE+CiAgICAgICAgPGRpdiBzdHlsZT0ibWFyZ2luLWJvdHRvbToxNXB4OyBkaXNwbGF5OmZsZXg7IGFsaWduLWl0ZW1zOmNlbnRlcjsgZ2FwOjEwcHg7Ij4KICAgICAgICAgICAgPGlucHV0IHR5cGU9ImNoZWNrYm94IiBpZD0iZy1sb25nIiBzdHlsZT0id2lkdGg6YXV0bzsgbWFyZ2luOjA7Ij4KICAgICAgICAgICAgPGxhYmVsIHN0eWxlPSJmb250LXNpemU6MC44cmVtOyI+RFVSQUNJacOTTiBFWFRFTkRJREEgKDMwIGTDrWFzKTwvbGFiZWw+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPHAgc3R5bGU9ImZvbnQtc2l6ZTowLjdyZW07IGNvbG9yOiM2NjY7Ij4qIFBvciBkZWZlY3RvIGR1cmFuIDcgZMOtYXMuIE1lbnNhamVzIHNvc3BlY2hvc29zIHNlcsOhbiBtb2RlcmFkb3MuPC9wPgogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LnBvc3RHbG9iYWxOb3RpY2UoKSIgY2xhc3M9ImJ0bi1wcmltYXJ5Ij5QVUJMSUNBUjwvYnV0dG9uPgogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LmNsb3NlTW9kYWwoKSIgY2xhc3M9ImJ0bi1zZWNvbmRhcnkiIHN0eWxlPSJtYXJnaW4tdG9wOjE1cHg7IHdpZHRoOjEwMCU7Ij5WT0xWRVI8L2J1dHRvbj4KICAgIGApOwp9CgpmdW5jdGlvbiBwb3N0R2xvYmFsTm90aWNlKCkgewogICAgY29uc3QgdGl0bGUgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZy10aXRsZScpLnZhbHVlLnRyaW0oKTsKICAgIGNvbnN0IHRleHQgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZy10ZXh0JykudmFsdWUudHJpbSgpOwogICAgaWYgKCF0aXRsZSB8fCAhdGV4dCkgcmV0dXJuOwogICAgCiAgICBjb25zdCBuZWVkc1JldmlldyA9IGlzU3BhbSh0aXRsZSkgfHwgaXNTcGFtKHRleHQpOwogICAgY29uc3QgaXNMb25nID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2ctbG9uZycpLmNoZWNrZWQ7CiAgICBnbG9iYWxOb3RpY2VzLnVuc2hpZnQoeyAKICAgICAgICB0aXRsZSwgdGV4dCwgZGF0ZTogRGF0ZS5ub3coKSwgCiAgICAgICAgcGVuZGluZzogbmVlZHNSZXZpZXcsCiAgICAgICAgZXhwaXJ5OiBpc0xvbmcgPyAyNTkyMDAwMDAwIDogNjA0ODAwMDAwIAogICAgfSk7CiAgICAKICAgIGlmIChnbG9iYWxOb3RpY2VzLmxlbmd0aCA+IDIwKSBnbG9iYWxOb3RpY2VzLnBvcCgpOwogICAgc2F2ZUFsbCgpOyByZW5kZXJHbG9iYWxCb2FyZCgpOyBjbG9zZU1vZGFsKCk7Cn0KCmZ1bmN0aW9uIHJlbmRlckxvY2FsQm9hcmQoKSB7CiAgICBjb25zdCBjYW1wID0gY2FtcGFpZ25zLmZpbmQoYyA9PiBjLmlkID09PSBjdXJyZW50Q2FtcGFpZ25JZCk7CiAgICBpZiAoIWNhbXApIHJldHVybjsKICAgIGNvbnN0IHJlcyA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdsb2NhbC1ib2FyZCcpOwogICAgaWYgKCFyZXMpIHJldHVybjsKCiAgICByZXMuaW5uZXJIVE1MID0gKGNhbXAubm90aWNlcyB8fCBbXSkubWFwKChuLCBpKSA9PiB7CiAgICAgICAgY29uc3QgZGF5cyA9IChEYXRlLm5vdygpIC0gKG4uZGF0ZSB8fCAwKSkgLyAoMTAwMCAqIDYwICogNjAgKiAyNCk7CiAgICAgICAgY29uc3QgcmVhZENvdW50ID0gKG4ucmVhZEJ5IHx8IFtdKS5sZW5ndGg7CiAgICAgICAgY29uc3QgcGFydHlTaXplID0gKGNhbXAubGFydHkgfHwgW10pLmxlbmd0aCB8fCAxOwogICAgICAgIGNvbnN0IHJlYWRQZXJjZW50ID0gKHJlYWRDb3VudCAvIHBhcnR5U2l6ZSkgKiAxMDA7CiAgICAgICAgCiAgICAgICAgbGV0IHN1Z2dlc3Rpb24gPSAnJzsKICAgICAgICBpZiAoY3VycmVudFJv bGUgPT09ICdtYXN0ZXInKSB7CiAgICAgICAgICAgIGlmIChkYXlzID4gMzAgJiYgcmVhZFBlcmNlbnQgPj0gNzApIHsKICAgICAgICAgICAgICAgIHN1Z2dlc3Rpb24gPSBgPGRpdiBzdHlsZT0iYmFja2dyb3VuZDpyZ2JhKDE5NywxNjAsODksMC4xKTsgYm9yZGVyOjFweCBzb2xpZCB2YXIoLS1nb2xkKTsgcGFkZGluZzo4cHg7IGJvcmRlci1yYWRpdXM6NXB4OyBtYXJnaW4tdG9wOjEwcHg7IGZvbnQtc2l6ZTowLjc1cmVtOyBjb2xvcjp2YXIoLS1nb2xkKTsiPgogICAgICAgICAgICAgICAgICAgIDxpIGNsYXNzPSJmYS1zb2xpZCBmYS1icm9vbSI+PC9pPiA8Yj5TdWdnZXJlbmNpYTo8L2I+ICR7TWF0aC5mbG9vcihyZWFkUGVyY2VudCl9JSBsbyBsZXnDsyBoYWNlICszMCBkw61hcy4gwr9Cb3JyYXIgbWlzacOzbj8KICAgICAgICAgICAgICAgIDwvZGl2PmA7CiAgICAgICAgICAgIH0gZWxzZSBpZiAoZGF5cyA+IDE1ICYmIHJlYWRQZXJjZW50IDwgMzApIHsKICAgICAgICAgICAgICAgIHN1Z2dlc3Rpb24gPSBgPGRpdiBzdHlsZT0iYmFja2dyb3VuZDpyZ2JhKDI1NSwxMzYsMCwwLjEpOyBib3JkZXI6MXB4IHNvbGlkICNmZjg4MDA7IHBhZGRpbmc6OHB4OyBib3JkZXItcmFkaXVzOjVweDsgbWFyZ2luLXRvcDoxMHB4OyBmb250LXNpemU6MC43NXJlbTsgY29sb3I6I2ZmODgwMDsiPgogICAgICAgICAgICAgICAgICAgIDxpIGNsYXNzPSJmYS1zb2xpZCBmYS1jaXJjbGUtZXhjbGFtYXRpb24iPjwvaT4gPGI+U3VnZ2VyZW5jaWE6PC9iPiBTb2xvICR7TWF0aC5mbG9vcihyZWFkUGVyY2VudCl9JSBkZSBpbnRlcsOpcyBlbiAxNSBkw61hcy4KICAgICAgICAgICAgICAgIDwvZGl2PmA7CiAgICAgICAgICAgIH0KICAgICAgICB9CgogICAgICAgIHJldHVybiBgCiAgICAgICAgPGRpdiBjbGFzcz0iY2FyZCIgc3R5bGU9ImJhY2tncm91bmQ6IzBhMGEwYTsgcG9zaXRpb246cmVsYXRpdmU7IGJvcmRlci1sZWZ0OjRweCBzb2xpZCB2YXIoLS1kYW5nZXIpOyAke3N1Z2dlc3Rpb24gPyAnYm9yZGVyLWNvbG9yOnZhcigtLWdvbGQpOycgOiAnJ30iPgogICAgICAgICAgICA8ZGl2IHN0eWxlPSJkaXNwbGF5OmZsZXg7IGp1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuOyBhbGlnbi1pdGVtczpzdGFydDsiPgogICAgICAgICAgICAgICAgPGRpdiA+CiAgICAgICAgICAgICAgICAgICAgPGgzIHN0eWxlPSJtYXJnaW46MDsiPiR7bi50aXRsZX08L2gzPgogICAgICAgICAgICAgICAgICAgICR7c3VnZ2VzdGlvbn0KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgJHtjdXJyZW50Um9sZSA9PT0gJ21hc3RlcicgPyBgPGkgY2xhc3M9ImZhLXNvbGlkIGZhLXRyYXNoIiBvbmNsaWNrPSJ3aW5kb3cuZGVsZXRlTWlzc2lvbigke2l9KSIgc3R5bGU9ImNvbG9yOnZhcigtLWRhbmdlcik7IGN1cnNvcjpwb2ludGVyOyI+PC9pPmAgOiAnJ30KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDxwIHN0eWxlPSJmb250LXNpemU6MS4xcmVtOyB3aGl0ZS1zcGFjZTpwcmUtd3JhcDsgbWFyZ2luOjE1cHggMDsgY29sb3I6I2NjYzsiPiR7bi50ZXh0fTwvcD4KICAgICAgICAgICAgPGRpdiBzdHlsZT0iYm9yZGVyLXRvcDoxcHggc29saWQgIzIyMjsgcGFkZGluZy10b3A6MTBweDsgZGlzcGxheTpmbGV4OyBqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjsgYWxpZ24taXRlbXM6Y2VudGVyOyI+CiAgICAgICAgICAgICAgICA8ZGl2IGlkPSJzZWFscy0ke2l9Ij4KICAgICAgICAgICAgICAgICAgICAkeyhuLnJlYWRCeSB8fCBbXSkubWFwKHIgPT4gYDxkaXYgY2xhc3M9IndheC1zZWFsIiB0aXRsZT0iJHtyfSI+PC9kaXY+YCkuam9pbihfKX0KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgJHtjdXJyZW50Um9sZSA9PT0gJ2F2ZW50dXJlcm8nID8gYDxidXR0b24gb25jbGljaz0id2luZG93Lm1hcmtBc1JlYWQoJHtpfSkiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0iZm9udC1zaXplOjAuN3JlbTsgcGFkZGluZzo1cHggMTBweDsiPk1BUkNBUiBDT01PIExFw41ETzwvYnV0dG9uPmAgOiAnJ30KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CiAgICBgOwogICAgfSkuam9pbihfKSB8fCAnPHAgc3R5bGU9ImNvbG9yOiM0NDQ7IHRleHQtYWxpZ246Y2VudGVyOyI+Tm8gaGF5IG1pc2lvbmVzIGFjdGl2YXMuPC9wPic7Cn0KCmZ1bmN0aW9uIG1hcmtBc1JlYWQoaWR4KSB7CiAgICBjb25zdCBjYW1wID0gY2FtcGFpZ25zLmZpbmQoYyA9PiBjLmlkID09PSBjdXJyZW50Q2FtcGFpZ25JZCk7CiAgICBpZiAoIWNhbXAgfHwgIWNhbXAubm90aWNlc1tpZHhdKSByZXR1cm47CiAgICBjb25zdCBuID0gY2FtcC5ub3RpY2VzW2lkeF07CiAgICBpZiAoIW4ucmVhZEJ5KSBuLnJlYWRCeSA9IFtdOwogICAgaWY (IW4ucmVhZEJ5LmluY2x1ZGVzKCdSnWdhZG9yJykpIHsgCiAgICAgICA BuLnJlYWRCeS5wdXNoKCdSnWdhZG9yJyk7CiAgICAgICAgc2F2ZUFsbCgpOyByZW5kZXJMb2JieSgpOwogICAgfQp9CgpmdW5jdGlvbiBhZGROaXNzaW9uKCkgewogICAgY29uc3QgdGl0bGUgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbWlzc2lvbi10aXRsZScpLnZhbHVlLnRyaW0oKTsKICAgIGNvbnN0IHRleHQgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbWlzc2lvbi10ZXh0JykudmFsdWUudHJpbSgpOwogICAgaWYgKCF0aXRsZSB8fCAhdGV4dCkgcmV0dXJuOwogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gIGMuaWQgPT09IGN1cnJlbnRDYW1wYWlnbklkKTsKICAgIGlmICghY2FtcC5ub3RpY2VzKSBjYW1wLm5vdGljZXMgPSBbXTsKICAgIGNhbXAubm90aWNlcy51bnNoaWZ0KHsgdGl0bGUsIHRleHQsIHJlYWRCeTogW10sIGRhdGU6IERhdGUubm93KCkgfSk7CiAgICBzYXZlQWxsKCk7IHJlbmRlckxvY2FsQm9hcmQoKTsKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtaXNzaW9uLXRpdGxlJykudmFsdWUgPSAnJzsKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtaXNzaW9uLXRleHQnKS52YWx1ZSA9ICcnOwp9CgpmdW5jdGlvbiBkZWxldGVNaXNzaW9uKGlkeCkgewogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gYy5pZCA9PT0gY3VycmVudENhbXBhaWduSWQpOwogICAgaWYgKCFjYW1wKSByZXR1cm47CiAgICBjYW1wLm5vdGljZXMuc3BsaWNlKGlkeCwgMSk7CiAgICBzYXZlQWxsKCk7IHJlbmRlckxvY2FsQm9hcmQoKTsKfQoKLy8gLS0tIE5QQyBUUkFERSAtLS0KZnVuY3Rpb24gb3Blbk5QQ1RyYWRlKGNoYXJJZCkgewogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gYy5pZCA9PT0gY3VycmVudENhbXBhaWduSWQpOwogICAgY29uc3QgY2hhciA9IChjYW1wLnBhcnR5IHx8IFtdKS5maW5kKHAgPT4gcC5pZCA9PSBjaGFySWQpOwogICAgaWY (IWNoYXIpIHJldHVybjsKICAgIGFjdGl2ZVRyYWRlID0gewogICAgICAgIGNoYXJJZDogY2hhcklkLAogICAgICAgIGdpdmVJdGVtczogW10sCiAgICAgICAgcmVjZWl2ZUNvaW5zOiB7IGNwOjAsIHNwOjAsIGVwOjAsIGdwOjAsIHBwOjAgfSwKICAgICAgICByZWNlaXZlSXRlbXM6IFtdLAogICAgICAgIHAxQ29uZmlybWVkOiBmYWxzZSwKICAgICAgICBwMkNvbmZpcm1lZDogZmFsc2UKICAgIH07CiAgICByZW5kZXJOUENUcmFkZVVJKGNoYXIpOwp9CgpmdW5jdGlvbiByZW5kZXJOUENUcmFkZVVJKGNoYXIpIHsKICAgIG9wZW5Nb2RhbChgCiAgICAgICAgPGgyIGNsYXNzPSJjaW56ZWwiIHN0eWxlPSJ0ZXh0LWFsaWduOmNlbnRlcjsiPlRyYXRvIGNvbiBOUEM8L2gyPgogICAgICAgIDxkaXYgc3R5bGU9ImRpc3BsYXk6Z3JpZDsganJpZC10ZW1wbGF0ZS1jb2x1bW5zOiAxZnI7IGdhcDoyMHB4OyI+CiAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNhcmQiIHN0eWxlPSJtYXJnaW46MDsgYmFja2dyb3VuZDojMDAwOyI+CiAgICAgICAgICAgICAgICA8aDMgc3R5bGU9ImZvbnQtc2l6ZTowLjlyZW07IGNvbG9yOndoaXRlOyI+RU5UUkVHQSBERUwgQVZFTlRVUkVSTzwvaDM+CiAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPSJtYXgtaGVpZ2h0OjEyMHB4OyBvdmVyZmxvdy15OmF1dG87IGZvbnQtc2l6ZToxcmVtOyBtYXJnaW4tYm90dG9tOjEwcHg7Ij4KICAgICAgICAgICAgICAgICAgICAkeyhjaGFyLmludmVudG9yeSB8fCBbXSkubWFwKChpdCwgaSkgPT4gYAogICAgICAgICAgICAgICAgICAgICAgICA8ZGl2IHN0eWxlPSJwYWRkaW5nOjVweCAwOyI+PGxhYmVsPjxpbnB1dCB0eXBlPSJjaGVja2JveCIgb25jaGFuZ2U9IndpbmRvdy51cGRhdGVOUENCaXZlKCR7aX0pIj4gJHtpdC5uYW1lfTwvbGFiZWw+PC9kaXY+CiAgICAgICAgICAgICAgICAgICAgYCkuam9inCgnJykgfHwgJ01vY2hpbGEgdmFjw61hJwogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjb2luLWdyaWQiPgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNvaW4tdW5pdCI+PHNwYW4gY2xhc3M9ImNvaW4tY3AiPkNQPC9zcGFuPjxzcGFuPiR7Y2hhci53YWxsZXQuY3B9PC9zcGFuPjwvZGl2PgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNvaW4tdW5pdCI+PHNwYW4gY2xhc3M9ImNvaW4tc3AiPlNQPjwvc3Bhbj48c3Bhbj4ke2NoYXIud2FsbGV0LnNwfTwvc3Bhbj48L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjb2luLXVuaXQiPjxzcGFuIGNsYXNzPSJjb2luLWdwIj5HUDwvc3Bhbj48c3Bhbj4ke2NoYXIud2FsbGV0LmdwfTwvc3Bhbj48L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjb2luLXVuaXQiPjxzcGFuIGNsYXNzPSJjb2luLXBwIj5QUDwvc3Bhbj48c3Bhbj4ke2NoYXIud2FsbGV0LnBwfTwvc3Bhbj48L2Rpdj4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgCiAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNhcmQiIHN0eWxlPSJtYXJnaW46MDsgYmFja2dyb3VuZDojMDAwOyBib3JkZXI6MXB4IHNvbGlkIHZhcigtLWdvbGQpOyI+CiAgICAgICAgICAgICAgICA8aDMgc3R5bGU9ImZvbnQtc2l6ZTowLjlyZW07IGNvbG9yOnZhcigtLWdvbGQpOyI+UkVDT01QRU5TQSBERUwgTlBDPC9oMz4KICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9ImRpc3BsYXk6Z3JpZDsganJpZC10ZW1wbGF0ZS1jb2x1bW5zOiAxZnIgMWZyOyBnYXA6MTBweDsgbWFyZ2luLWJvdHRvbToxNXB4OyI+CiAgICAgICAgICAgICAgICAgICAgPGlucHV0IHR5cGU9Im51bWJlciIgcGxhY2Vob2xkZXI9IkNQIiBvbmlucHV0PSJhY3RpdmVUcmFkZS5yZWNlaXZlQ29pbnMuY3A9dGhpcy52YWx1ZSI+CiAgICAgICAgICAgICAgICAgICAgPGlucHV0IHR5cGU9Im51bWJlciIgcGxhY2Vob2xkZXI9IkdQIiBvbmlucHV0PSJhY3RpdmVUcmFkZS5yZWNlaXZlQ29pbnMuZ3A9dGhpcy52YWx1ZSI+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgIDxpbnB1dCB0eXBlPSJ0ZXh0IiBpZD0ibnBjLWl0ZW0tc2VhcmNoIiBwbGFjZWhvbGRlcj0iR2VuZXJhciDDrXRlbSBvIG1hdGVyaWFsLi4uIiBvbmtleXVwPSJ3aW5kb3cuc2VhcmNoTlBDSXRlbXMoKSI+CiAgICAgICAgICAgICAgICA8ZGl2IGlkPSJucGMtc2VhcmNoLXJlc3VsdHMiIHN0eWxlPSJmb250LXNpemU6MC45cmVtOyBjb2xvcjp2YXIoLS1nb2xkKTsgbWFyZ2luLWJvdHRvbToxMHB4OyI+PC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGlkPSJucGMtcGVuZGluZy1pdGVtcyIgc3R5bGU9ImZvbnQtc2l6ZTowLjlyZW07IGNvbG9yOiNhYWE7Ij48L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CgogICAgICAgIDxkaXYgc3R5bGU9Im1hcmdpbi10b3A6MjBweDsgZGlzcGxheTpmbGV4OyBnYXA6MTBweDsiPgogICAgICAgICAgICA8YnV0dG9uIGlkPSJidG4tbnBjLXAxIiBvbmNsaWNrPSJ3aW5kb3cuY29uZmlybU5QQ1BhcnQoMSkiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0iZmxleDoxOyI+U0VMTEFSIE5QQzwvYnV0dG9uPgogICAgICAgICAgICA8YnV0dG9uIGlkPSJidG4tbnBjLXAyIiBvbmNsaWNrPSJ3aW5kb3cuY29uZmlybU5QQ1BhcnQoMikiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0iZmxleDoxOyI+U0VMTEFSIEpVR0FET1I8L2J1dHRvbj4KICAgICAgICA8L2Rpdj4KICAgICAgICA8YnV0dG9uIGlkPSJidG4tbnBjLWV4ZWMiIG9uY2xpY2s9IndpbmRvdy5leGVjdXRlTlBDVHJhZGUoKSIgY2xhc3M9ImJ0bi1wcmltYXJ5IiBzdHlsZT0iZGlzcGxheTpub25lOyBtYXJnaW4tdG9wOjE1cHg7Ij5DRVJSQVIgVFJBVE88L2J1dHRvbj4KICAgIGApOwp9CgpmdW5jdGlvbiB1cGRhdGVOUENCaXZlKGlkeCkgewogICAgaWYgKCFhY3RpdmVUcmFkZSkgcmV0dXJuOwogICAgaWYgKGFjdGl2ZVRyYWRlLmdpdmVJdGVtcy5pbmNsdWRlcyhpZHgpKSBhY3RpdmVUcmFkZS5naXZlSXRlbXMgPSBhY3RpdmVUcmFkZS5naXZlSXRlbXMuZmlsdGVyKGkgPT4gaSAhPT0gaWR4KTsKICAgIGVsc2UgYWN0aXZlVHJhZGUuZ2l2ZUl0ZW1zLnB1c2goaWR4KTsKfQoKZnVuY3Rpb24gc2VhcmNoTlBDSXRlbXMoKSB7CiAgICBjb25zdCBxID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ25wYy1pdGVtLXNlYXJjaCcpLnZhbHVlLnRvTG93ZXJDYXNlKCk7CiAgICBjb25zdCByZXMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbnBjLXNlYXJjaC1yZXN1bHRzJyk7CiAgICBpZiAocS5sZW5ndGggPCAyKSByZXR1cm4gcmVzLmlubmVySFRNTCA9ICcnOwogICAgY29uc3QgbWF0Y2hlcyA9IFsuLi5zcmREYXRhLml0ZW1zLCAuLi5zcmREYXRhLndlYXBvbnNdLmZpbHRlcihpID0+IGkubmFtZS50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKHEpKS5zbGljZSgwLCAzKTsKICAgIHJlcy5pbm5lckhUTUwgPSBtYXRjaGVzLm1hcChtID0+IGA8ZGl2IG9uY2xpY2s9IndpbmRvdy5hZGROUENCXRlbSgnJHttLm5hbWV9JykiIHN0eWxlPSJjdXJzb3I6cG9pbnRlcjsgcGFkZGluZzo4cHg7IGJvcmRlci1ib3R0b206MXB4IHNvbGlkICMyMjI7Ij4rICR7bS5uYW1lfTwvZGl2PmApLmpvaW4oJycpICsgYDxkaXYgb25jbGljaz0id2luZG93LmFkGROUENCXRlbSgnJHtkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbnBjLWl0ZW0tc2VhcmNoJykudmFsdWV9JykiIHN0eWxlPSJjb2xvcjp3aGl0ZTsgY3Vyc29yOnBvaW50ZXI7IHBhZGRpbmc6OHB4OyI+KyBbQ3JlYXJdOiAke2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCducGMtaXRlbS1zZWFyY2gnKS52YWx1ZX08L2Rpdj5gOwp9CgpmdW5jdGlvbiBhZGROUENCXRlbShuYW1lKSB7CiAgICBpZiAoIWFjdGl2ZVRyYWRlKSByZXR1cm47CiAgICBhY3RpdmVUcmFkZS5yZWNlaXZlSXRlbXMucHVzaChuYW1lKTsKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCducGMtcGVuZGluZy1pdGVtcycpLmlubmVySFRNTCA9IGFjdGl2ZVRyYWRlLnJlY2VpdmVJdGVtcy5tYXAoaSA9PiBg4oCiICR7aX1gKS5qb2luKCc8YnI+Jyk7Cn0KCmZ1bmN0aW9uIGNvbmZpcm1OUENCYXJ0KG4pIHsKICAgIGlmICghYWN0aXZlVHJhZGUpIHJldHVybjsKICAgIGlmIChuID09PSAxKSB7IGFjdGl2ZVRyYWRlLnAxQ29uZmlybWVkID0gdHJ1ZTsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2J0bi1ucGMtcDEnKS5zdHlsZS5iYWNrZ3JvdW5kID0gJ3ZhcigtLXN1Y2Nlc3MpJzsgfQogICAgaWYgKG4gPT09IDIpIHsgYWN0aXZlVHJhZGUucDJDb25maXJtZWQgPSB0cnVlOyBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYnRuLW5wYy1wMicpLnN0eWxlLmJhY2tncm91bmQgPSAndmFyKC0tc3VjY2VzcyknOyB9CiAgICBpZiAoYWN0aXZlVHJhZGUucDFDb25maXJtZWQgJiYgYWN0aXZlVHJhZGUucDJDb25maXJtZWQpIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdidG4tbnBjLWV4ZWMnKS5zdHlsZS5kaXNwbGF5ID0gJ2Jsb2NrJzsKfQoKZnVuY3Rpb24gZXhlY3V0ZU5QQ1RyYWRlKCkgewogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gYy5pZCA9PT0gY3VycmVudENhbXBhaWduSWQpOwogICAgY29uc3QgY2hhciA9IGNhbXAubmFydHkuZmluZChwID0+IHAuaWQgPT0gYWN0aXZlVHJhZGUuY2hhcklkKTsKICAgIAogICAgYWN0aXZlVHJhZGUuZ2l2ZUl0ZW1zLnNvcnQoKGEsYikgPT4gYi1hKS5mb3JFYWNoKGlkeCA9PiBjaGFyLmludmVudG9yeS5zcGxpY2UoaWR4LCAxKSk7CiAgICAKICAgIGNoYXIud2FsbGV0LmNwICs9IHBhcnNlSW50KGFjdGl2ZVRyYWRlLnJlY2VpdmVDb2lucy5jcCkgfHwgMDsKICAgIGNoYXIud2FsbGV0LnNwICs9IHBhcnNlSW50KGFjdGl2ZVRyYWRlLnJlY2VpdmVDb2lucy5zcCkgfHwgMDsKICAgIGNoYXIud2FsbGV0LmdwICs9IHBhcnNlSW50KGFjdGl2ZVRyYWRlLnJlY2VpdmVDb2lucy5ncCkgfHwgMDsKICAgIGNoYXIud2FsbGV0LnBwICs9IHBhcnNlSW50KGFjdGl2ZVRyYWRlLnJlY2VpdmVDb2lucy5wcCkgfHwgMDsKICAgIAogICAgYWN0aXZlVHJhZGUucmVjZWl2ZUl0ZW1zLmZvckVhY2gobmFtZSA9PiBjaGFyLmludmVudG9yeS5wdXNoKHsgbmFtZSwgd2VpZ2h0OiAxIH0pKTsKICAgIAogICAgc2F2ZUFsbCgpOyBjbG9zZU1vZGFsKCk7IHJlbmRlclBhcnR5KCk7IHJlbmRlck1hc3RlckV5ZSgpOwp9CgovLyAtLS0gQ09NQkFUICYgU1JEIC0tLQphc3luYyBmdW5jdGlvbiBsb2FkU1JERGF0YSgpIHsKICAgIHRyeSB7CiAgICAgICAgY29uc3QgcmVzcG9uc2UgPSBhd2FpdCBmZXRjaCgnZGF0YS9zcmRfZGF0YS5qc29uJyk7CiAgICAgICAgc3JkRGF0YSA9IGF3YWl0IHJlc3BvbnNlLmpzb24oKTsKICAgIH0gY2F0Y2ggKGUpIHsgY29uc29sZS53YXJuKCJTUkQgZmFpbCIpOyB9Cn0KCmZ1bmN0aW9uIHNlYXJjaE1vbnN0ZXJzKCkgewogICAgY29uc3QgcSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtb25zdGVyLXNlYXJjaCcpLnZhbHVlLnRvTG93ZXJDYXNlKCk7CiAgICBjb25zdCByZXMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncyVhcmNoLXJlc3VsdHMnKTsKICAgIGlmICghcSkgcmV0dXJuIHJlcy5pbm5lckhUTUwgPSAnJzsKICAgIGNvbnN0IG1hdGNoZXMgPSBzcmREYXRhLm1vbnN0ZXJzLmZpbHRlcihtID0+IG0ubmFtZS50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKHEpKS5zbGljZSgwLCA1KTsKICAgIHJlcy5pbm5lckhUTUwgPSBtYXRjaGVzLm1hcChtID0+IGAKICAgICAgICA8ZGl2IG9uY2xpY2s9IndpbmRvdy5zaG93TW9uc3Rlck1vZGFsKCcke20ubmFtZX0nKSIgY2xhc3M9ImNhbXBhaWduLWl0ZW0iIHN0eWxlPSJjdXJzb3I6cG9pbnRlcjsiPgogICAgICAgICAgICA8c3BhbiBzdHlsZT0iY29sb3I6dmFyKC0tZ29sZCk7IGZvbnQtZmFtaWx5OkNpbnplbDsiPiR7bS5uYW1lfTwvc3Bhbj4KICAgICAgICAgICAgPHNwYW4gc3R5bGU9ImNvbG9yOiM2NjY7IGZvbnQtc2l6ZTowLjhyZW07Ij5DUiAke20uY3J9PC9zcGFuPgogICAgICAgIDwvZGl2PgogICAgYCkuam9pbihfKTsKfQoKZnVuY3Rpb24gc2hvd01vbnN0ZXJNb2RhbChuYW1lIHsKICAgIGNvbnN0IG0gPSBzcmREYXRhLm1vbnN0ZXJzLmZpbHRlcihtbCA9PiBtby5uYW1lID09PSBuYW1lKTsKICAgIGlmICghbSkgcmV0dXJuOwogICAgb3Blbk1vZGFsKGAKICAgICAgICA8aDIgY2xhc3M9ImNpbnplbCIgc3R5bGU9InRleHQtYWxpZ246Y2VudGVyOyBjb2xvcjp2YXIoLS1nb2xkKTsgZm9udC1zaXplOjJyZW07Ij4ke20ubmFtZX08L2gyPgogICAgICAgIDxwIHN0eWxlPSidGV4dC1hbGlnbjpjZW50ZXI7IGNvbG9yOiM4ODg7IG1hcmdpbi10b3A6LTEwcHg7Ij4ke20udHlwZX0gfCBDUjogJHttLmNyfTwvcD4KICAgICAgICA8ZGl2IHN0eWxlPSJkaXNwbGF5OmdyaWQ7IGdyaWQtdGVtcGxhdGUtY29sdW1uczoxZnIgMWZyOyBnYXA6MTVweDsgbWFyZ2luOjIwcHggMDsiPgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkIiBzdHlsZT0ibWFyZ2luOjA7IHRleHQtYWxpZ246Y2VudGVyOyBiYWNrZ3JvdW5kOiMwMDA7Ij5DQTxicj48YiBzdHlsZT0iZm9udC1zaXplOjEuNXJlbTsgY29sb3I6dmFyKC0tZ29sZCk7Ij4ke20uYWN9PC9iPjwvZGl2PgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkIiBzdHlsZT0ibWFyZ2luOjA7IHRleHQtYWxpZ246Y2VudGVyOyBiYWNrZ3JvdW5kOiMwMDA7Ij5WSURBPGJyPjxiIHN0eWxlPSJmb250LXNpemU6MS41cmVtOyBjb2xvcjp2YXIoLS1kYW5nZXIpOyI+JHttLmhwfTwvYj48L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgICAgICA8YnV0dG9uIG9uY2xpY2s9IndpbmRvdy5nb290TG9vdEZyb21Nb25zdGVyKCcke20ubmFtZX0nLCAnJHttLmNrfScsICcke20udHlwZX0nKSIgY2xhc3M9ImJ0bi1wcmltYXJ5Ij5ERVJST1RBRE8gKEJPVMONTik8L2J1dHRvbj4KICAgICAgICA8YnV0dG9uIG9uY2xpY2s9IndpbmRvdy5jbG9zZU1vZGFsKCkiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0ibWFyZ2luLXRvcDoxNXB4OyB3aWR0aDoxMDAlOyI+Q0VSUkFSPC9idXR0b24+CiAgICBgKTsKfQoKZnVuY3Rpb24gZ29v dExvb3RGcm9tTW9uc3RlcihuYW1lLCBjciwgdHlwZSkgewogICAgY2xvc2VNb2RhbCgpOwogICAgZ2VuZXJhdGVMb290KGNyLCB0eXBlLCBuYW1lKTsKfQoKLy8gLS0tIEJPVMONTiAtLS0KZnVuY3Rpb24gZ2VuZXJhdGVMb290KGNyU3RyLCB0eXBlLCBtb25zdGVyTmFtZSA9ICdUZXNvcm8nKSB7CiAgICBjb25zdCBjciA9IGV2YWwoY3JTdHIpIHx8IDE7CiAgICBjb25zdCBpc05hdHVyZSA9IFsnYmVhc3QnLCAnbW9uc3Ryb3NpdHknLCAncGxhbnQnLCAnb296ZSddLmluY2x1ZGVzKHR5cGUudG9Mb3dlckNhc2UoKSk7CiAgICAKICAgIGxldCBjb2lucyA9IHsgY3A6MCwgc3A6MCwgZXA6MCwgZ3A6MCwgcHA6MCB9OwogICAgbGV0IGl0ZW1zID0gW107CgogICAgaWYgKGlzTmF0dXJlKSB7CiAgICAgICAgaXRlbXMucHVzaCh7IG5hbWU6IGBQaWVsIGRlICR7bW9uc3Rlck5hbWV9YCwgd2VpZ2h0OiA1LCB2YWw6IE1hdGguZmxvb3IoY3IgKiA1KSB9KTsKICAgICAgICBpdGVtcy5wdXNoKHsgbmFtZTogYEdsX8OhbmR1bGEvUmVzdG9zIGRlICR7bW9uc3Rlck5hbWV9YCwgd2VpZ2h0OiAxLCB2YWw6IE1hdGguZmxvb3IoY3IgKiAyKSB9KTsKICAgIH0gZWxzZSB7CiAgICAgICAgY29pbnMuY3AgPSBNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiAxMDAgKiBjcnIpOwogICAgICAgIGNvbnlucy5zcCA9IE1hdGguZmxvb3IoTWF0aC5yYW5kb20oKSAqIDUwICogY3IpOwogICAgICAgIGNvaW5zLmdwID0gTWF0aC5mbG9vcigoTWF0aC5yYW5kb20oKSAqIDIwICsgMTApICogY3IpOwogICAgICAgIGlmIChjciA+PSA1KSBjb2lucy5wcCA9IE1hdGguZmxvb3IoTWF0aC5yYW5kb20oKSAqIDUgKiBjcnIpOwogICAgfQoKICAgIGxhc3RHZW5lcmF0ZWRMb290ID0geyBjb2lucywgaXRlbXMgfTsKCiAgICBsZXQgY29pkhRtbCA9IE9iamVjdC5lbnRyaWVzKGNvaW5zKS5maWx0ZXIoKFtfLCB2XSkgPT4gdiA+IDApLm1hcCgoW2ssIHZdKSA9PiBgPHNwYW4gY2xhc3M9ImNvaW4tJHtrfSI+JHt2fSRre3N9PC9zcGFuPmApLmpvaW4oJyAnKTsKICAgIAogICAgb3Blbk1vZGFsKGAKICAgICAgICA8aDIgY2xhc3M9ImNpbnplbCI+JHtpc05hdHVyZSA/ICdSZXN0b3MgTmF0dXJhbGVzJyA6ICdDb2ZyZSBIYWxsYWRvJ308L2gyPgogICAgICAgIDxkaXYgc3R5bGU9InRleHQtYWxpZ246Y2VudGVyOyBtYXJnaW4tYm90dG9tOjIwcHg7Ij4KICAgICAgICAgICAgPGRpdiBzdHlsZT0iZm9udC1zaXplOjEuNHJlbTsgY29sb3I6dmFyKC0tZ29sZCk7Ij4ke2NvaW5IdG1sfTwvZGl2PgogICAgICAgICAgICAke2l0ZW1zLm1hcChpdCA9PiBgPGRpdiBzdHlsZT0iZm9udC1zaXplOjAuOXJlbTsiPuKAoiAke2l0Lm5hbWV9ICgke2l0LnZhbH1ncCk8L2Rpdj5gKS5qb2luKCcnKX0KICAgICAgICA8L2Rpdj4KICAgICAgICA8ZGl2IGlkPSJsb290LWFzc2lnbi1hcmVhIj4KICAgICAgICAgICAgPGxhYmVsIHN0eWxlPSJmb250LXNpemU6MC44cmVtOyI+UkVQQVJUSVIgRU5UUkU6PC9sYWJlbD4KICAgICAgICAgICAgPHNlbGVjdCBpZD0ibG9vdC10YXJnZXQiIHN0eWxlPSJtYXJnaW4tYm90dG9tOjE1cHg7Ij4KICAgICAgICAgICAgICAgIDoptionIHZhbHVlPSJhbGwiPlRvZGEgbGEgUGFydHkgKERpdmlzacOzbik8L29wdGlvbj4KICAgICAgICAgICAgICAgICR7KGNhbXBhaWducy5maW5kKGNgID0+IGMuaWQgPT09IGN1cnJlbnRDYW1wYWlnbklkKS5wYXJ0eSB8fCBbXSkubWFwKHAgPT4gYDxvcHRpb24gdmFsdWU9IiR7cC5pZH0iPiR7cC5uYW1lfTwvb3B0aW9uPmApLmpvaW4oXykhfQogICAgICAgICAgICA8L3NlbGVjdD4KICAgICAgICAgICAgPGJ1dHRvbiBvbmNsaWNrPSJ3aW5kb3cuZXhlY3V0ZUxvb3RBc3NpZ24oKSIgY2xhc3M9ImJ0bi1wcmltYXJ5Ij5DT05GSUSTVUFSIFJFU0FSVE88L2J1dHRvbj4KICAgICAgICA8L2Rpdj4KICAgICAgICA8YnV0dG9uIG9uY2xpY2s9IndpbmRvdy5jbG9zZU1vZGFsKCkiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0ibWFyZ2luLXRvcDoxNXB4OyB3aWR0aDoxMDAlOyI+REVTQ0FSVEFSPC9idXR0b24+CiAgICBgKTsKfQoKZnVuY3Rpb24gZXhlY3V0ZUxvb3RBc3NpZ24oKSB7CiAgICBpZiAoIWxhc3RHZW5lcmF0ZWRMb290KSByZXR1cm47CiAgICBjb25zdCB0YXJnZXQgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbG9vdC10YXJnZXQnKS52YWx1ZTsKICAgIGNvbnN0IGNhbXAgPSBjYW1wYWlnbnMuZmluZChjID0+IGMuaWQgPT09IGN1cnJlbnRDYW1wYWlnbklkKTsKICAgIGNvbnN0IHsgY29pbnMsIGl0ZW1zIH0gPSBsYXN0R2VuZXJhdGVkTG9vdDsKCiAgICBpZiAodGFyZ2V0ID09PSAnYWxsJykgewogICAgICAgIGNvbnN0IHBDb3VudCA9IGNhbXAubmFydHkubGVuZ3RoIHx8IDE7CiAgICAgICAgY2FtcC5wYXJ0eS5mb3JFYWNoKHAgPT4gewogICAgICAgICAgICBPYmplY3Qua2V5cyhjb2lucykuZm9yRWFjaChrID0+IHsKICAgICAgICAgICAgICAgIGNvbnN0IHNoYXJlID0gTWF0aC5mbG9vcihjb2luc1trXSAvIHBDb3VudCk7CiAgICAgICAgICAgICAgICBpZiAoc2hhcmUgPiAwKSBwLndhbGxldFtrXSA9IChwLndhbGxldFtrXSB8fCAwKSArIHNoYXJlOwogICAgICAgICAgICB9KTsKICAgICAgICAgICAgaXRlbXMuZm9yRWFjaChpdCA9PiBwLmludmVudG9yeS5wdXNoKHsuLi5pdH0pKTsKICAgICAgICB9KTsKICAgIH0gZWxzZSB7CiAgICAgICAgY29uc3QgcCA9IGNhbXAubmFydHkuZmluZChoID0+IGguaWQgPT0gdGFyZ2V0KTsKICAgICAgICBPYmplY3Qua2V5cyhjb2lucykuZm9yRWFjaChrID0+IHsKICAgICAgICAgICAgcC53YWxsZXRba10gPSAocC53YWxsZXRba10gfHwgMCkgKyBjb2luc1trXTsKICAgICAgICB9KTsKICAgICAgICBpdGVtcy5mb3JFYWNoKGl0ID0+IHAuaW52ZW50b3J5LnB1c2goey4uLml0fSkpOwogICAgfQoKICAgIHNhdmVBbGwoKTsgcmVuZGVyUGFydHkoKTsgcmVuZGVyTWFzdGVyRXllKCk7IGNsb3NlTW9kYWwoKTsKfQoKLy8gLS0tIFJJVFVBTCAtLS0KbGV0IGN1cnJlbnRSaXR1YWxSb2xscyA9IFtdOwpsZXQgaXNSZWRlbXB0aW9uTW9kZSA9IGZhbHNlOwoKZnVuY3Rpb24gcm9sbEZvckxpbWl0KCkgewogICAgY3VycmVudFJpdHVhbFJvbGxzID0gW107CiAgICBpc1JlZGVtcHRpb25Nb2RlID0gZmFsc2U7CiAgICBvcGVuRGljZU1vZGFsKCk7Cn0KCmZ1bmN0aW9uIG9wZW5EaWNlTW9kYWwoKSB7CiAgICBvcGVuTW9kYWwoYCoreyBkaWNlLXJpdHVhbC1hcmVhIHsgY29sb3I6IHZhcigtLWdvbGQpOyB9IGAgKwogICAgICAgIGA8ZGl2IGNsYXNzPSJkaWNlLXJpdHVhbC1hcmVhIj4KICAgICAgICAgICAgPGgyIGNsYXNzPSJjaW56ZWwiPlJpdHVhbCBkZSBBc2NlbnNvPC9oMj4KICAgICAgICAgICAgPGRpdiBpZD0icml0dWFsLW1zZy1jb250YWluZXIiIGNsYXNzPSJyaXR1YWwtbXNnWFhLWFyZWEiIG9uY2xpY2s9IndpbmRvdy5jaGVja1JlZGVtcHRpb25DbGljaygpIj4KICAgICAgICAgICAgICAgIDxwIGlkPSJyaXR1YWwtbXNnIiBzdHlsZT0ibWFyZ2luOjA7Ij5Ub2NhIGVsIGRhZG8gcGFyYSB0dSAxwqogdGlyYWRhPC9wPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGRpdiBpZD0idmlzdWFsLWRpZSIgY2xhc3M9ImQyMC12aXN1YWwiIG9uY2xpY2s9IndpbmRvdy5leGVjdXRlUml0dWFsU3RlcCgpIj4KICAgICAgICAgICAgICAgIDxpIGNsYXNzPSJmYS1zb2xpZCBmYS1kaWNlLWQyMCI+PC9pPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0icm9sbC1oaXN0b3J5IiBpZD0icml0dWFsLWhpc3RvcnkiPgogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0icm9sbC1kb3QiPj88L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9InJvbGwtZG90Ij4/PC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJyb2xsLWRvdCI+PzwvZGl2PgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgIGApOwp9CgoKLy8gLS0tIFBFUlNPTkFKRVMgLS0tCmZ1bmN0aW9uIHJlbmRlclBhcnR5KCkgewogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gYy5pZCA9PT0gY3VycmVudENhbXBhaWduSWQpOwogICAgaWYgKCFjYW1wKSByZXR1cm47CiAgICBjb25zdCByZXMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnY2hhcmFjdGVyLWxpc3QnKTsKICAgIAogICAgcmVzLmlubmVySFRNTCA9IChjYW1wLnBhcnR5IHx8IFtdKS5tYXAoYyA9PiBgCiAgICAgICAgPGRpdiBjbGFzcz0iY2FyZCIgc3R5bGU9Im1hcmdpbi1ib3R0b206MTVweDsgcGFkZGluZzoxNXB4OyBib3JkZXItbGVmdDogM3B4IHNvbGlkIHZhcigtLWdvbGQpOyI+CiAgICAgICAgICAgIDxkaXYgb25jbGljaz0id2luZG93LnRvZ2dsZUludmVudG9yeSgnJHtjLmlkfScpIiBzdHlsZT0iZGlzcGxheTpmbGV4OyBqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjsgYWxpZ24taXRlbXM6c3RhcnQ7IGN1cnNvcjpwb2ludGVyOyI+CiAgICAgICAgICAgICAgICA8ZGl2PgogICAgICAgICAgICAgICAgICAgIDxoMyBzdHlsZT0ibWFyZ2luOjA7IGZvbnQtc2l6ZToxLjJyZW07Ij4ke2MubmFtZX08L2gzPgogICAgICAgICAgICAgICAgICAgIDxwIHN0eWxlPSJtYXJnaW46MDsgZm9udC1zaXplOjAuNzVyZW07IGNvbG9yOiM4ODg7Ij5BdmVudHVyZXJvIOKAoiBOaXZlbCAxPC9wPgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNvaW4tZ3JpZCIgc3R5bGU9IndpZHRoOjIwMHB4OyBtYXJnaW4tdG9wOjEwcHg7Ij4KICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3M9ImNvaW4tY3AiPiR7Yy53YWxsZXQuY3B9Yzwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3M9ImNvaW4tc3AiPiR7Yy53YWxsZXQuc3B9czwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3M9ImNvaW4tZ3AiPiR7Yy53YWxsZXQuZ3B9Zzwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3M9ImNvaW4tcHAiPiR7Yy53YWxsZXQucHB9cDwvc3Bhbj4KICAgICAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPGRpdiBzdHlsZT0idGV4dC1hbGlnbjpyaWdodDsiPgogICAgICAgICAgICAgICAgICAgICR7Y3VycmVudFJv bGUgPT==
