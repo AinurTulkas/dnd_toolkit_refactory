@@ -1,5 +1,1 @@
-const CACHE_NAME = 'dnd-toolkit-v17';
-const assetsToCache = ['./', './index.html', './styles.css', './app.js', './manifest.json'];
-self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(assetsToCache))); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.map(k => k !== CACHE_NAME ? caches.delete(k) : null))).then(() => self.clients.claim())); });
-self.addEventListener('fetch', e => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
+Y29uc3QgQ0FDSEVfTkFNRSA9ICdkbmQtdG9vbGtpdC12MTgnOwpjb25zdCBhc3NldHNUb0NhY2hlID0gWycuLycsICcuL2luZGV4Lmh0bWwnLCAnLi9zdHlsZXMuY3NzJywgJy4vYXBwLmpzJywgJy4vbWFuaWZlc3QuanNvbiddOwpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2luc3RhbGwnLCBlID0+IHsgc2VsZi5za2lwV2FpdGluZygpOyBlLndhaXRVbnRpbChjYWNoZXMub3BlbihDQUNIRV9OQU1FKS50aGVuKGMgPT4gYy5hZGRBbGwoYXNzZXRzVG9DYWNoZSkpKTsgfSk7CnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignYWN0aXZhdGUnLCBlID0+IHsgZS53YWl0VW50aWwoY2FjaGVzLmtleXMoKS50aGVuKGtzID0+IFByb21pc2UuYWxsKGtzLm1hcChrID0+IGsgIT09IENBQ0hFX05BTUUgPyBjYWNoZXMuZGVsZXRlKGspIDogbnVsbCkpKS50aGVuKCgpID0+IHNlbGYuY2xpZW50cy5jbGFpbSgpKSk7IH0pOwpzZWxmLmFkZEV2ZW50TGlzdGVuZXIoJ2ZldGNoJywgZSA9PiB7IGUucmVzcG9uZFdpdGgoZmV0Y2goZS5yZXF1ZXN0KS5jYXRjaCgoKSA9PiBjYWNoZXMubWF0Y2goZS5yZXF1ZXN0KSkpOyB9KTs=
