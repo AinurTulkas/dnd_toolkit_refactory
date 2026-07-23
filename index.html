@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D&D Grimoire Pro</title>
-    <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -14,33 +13,29 @@
         <div class="modal-content" id="modal-body"></div>
     </div>
 
-    <div id="lobby-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-dark); z-index:5000; overflow-y:auto;">
-        <!-- Se llena dinámicamente desde app.js -->
-    </div>
+    <div id="lobby-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg-dark); z-index:5000; overflow-y:auto;"></div>
 
-    <div id="role-indicator" style="position:fixed; top:60px; right:20px; z-index:1000; display:none; background:rgba(0,0,0,0.8); border:1px solid var(--gold); padding:5px 10px; border-radius:10px; color:var(--gold); font-size:0.7rem; font-family:Cinzel;">MODO: <span id="role-text">MASTER</span></div>
+    <div id="role-indicator" style="position:fixed; top:20px; right:20px; z-index:1000; display:none; background:rgba(0,0,0,0.8); padding:5px 10px; border-radius:5px; border:1px solid var(--gold); font-size:0.7rem; font-family:Cinzel;">
+        MODO: <span id="role-text" style="color:var(--gold);">MASTER</span>
+    </div>
 
     <div class="container">
         <div id="tab-home" class="tab-content">
             <div class="card" style="text-align:center;">
-                <h1 id="campaign-title" style="font-size:2.5rem; margin-bottom:10px;">Aventura</h1>
+                <h1 id="campaign-title" style="font-size:2rem; margin-bottom:10px;">Aventura</h1>
                 <p style="color:var(--gold-muted); font-style:italic; margin-bottom:30px;">Panel de Control</p>
-                
-                <div style="display:grid; grid-template-columns:1fr; gap:15px;">
-                    <button onclick="window.exitToLobby()" class="btn-secondary" style="width:100%;">CAMBIAR DE CAMPAÑA</button>
-                </div>
+                <button onclick="window.exitToLobby()" class="btn-secondary" style="width:100%;">SALIR AL LOBBY</button>
             </div>
         </div>
 
         <div id="tab-combat" class="tab-content">
             <div class="card">
                 <h2 class="cinzel">Cámara de Batalla</h2>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:25px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
                     <button onclick="window.generateEncounter('normal')" class="btn-primary">INCURSIÓN</button>
-                    <button onclick="window.generateEncounter('hard')" class="btn-primary" style="border-color:#ff4444;">GRAN DESAFÍO</button>
+                    <button onclick="window.generateEncounter('hard')" class="btn-primary" style="border-color:var(--gold);">GRAN DESAFÍO</button>
                 </div>
-                <hr style="border-top:1px solid #222; margin:25px 0;">
-                <input type="text" id="monster-search" placeholder="Buscar en el manual (ej: Bugbear)..." onkeyup="window.searchMonsters()">
+                <input type="text" id="monster-search" placeholder="Buscar criatura..." onkeyup="window.searchMonsters()">
                 <div id="search-results"></div>
             </div>
         </div>
@@ -48,26 +43,20 @@
         <div id="tab-botin" class="tab-content">
             <div class="card">
                 <h2 class="cinzel">Cámara de Botín</h2>
-                <p style="color:#666; font-size:0.9rem; margin-top:-10px; margin-bottom:20px;">Generador de tesoros basado en nivel (CR).</p>
-                <div class="form-group"><label>Nivel de Encuentro (CR)</label><input type="number" id="loot-cr" value="1"></div>
-                <div style="margin:15px 0; display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" id="is-lair-loot" style="width:auto; margin:0;">
-                    <label>¿ES UNA GUARIDA?</label>
-                </div>
-                <button onclick="window.generateLoot(document.getElementById('loot-cr').value, 'humanoid', 'Tesoro')" class="btn-primary">GENERAR TESORO</button>
+                <input type="number" id="loot-cr" value="1" placeholder="CR del Encuentro">
+                <button onclick="window.generateLoot(document.getElementById('loot-cr').value, 'humanoid', 'Tesoro Hallado', false)" class="btn-primary">GENERAR TESORO</button>
             </div>
         </div>
 
         <div id="tab-notices" class="tab-content">
             <div class="card">
-                <h2 class="cinzel">Misiones de la Party</h2>
+                <h2 class="cinzel">Tablón de Misiones</h2>
                 <div id="local-board"></div>
-                
-                <div class="master-only-block" id="mission-form-area" style="margin-top:40px; border-top:2px solid #222; padding-top:30px;">
-                    <h3 class="cinzel" style="font-size:1rem;">Nueva Misión / Aviso</h3>
-                    <input type="text" id="mission-title" placeholder="Título de la misión...">
-                    <textarea id="mission-text" placeholder="Instrucciones del Master..." style="height:120px;"></textarea>
-                    <button onclick="window.addMission()" class="btn-primary">CLAVAR EN EL TABLÓN</button>
+                <div id="mission-form-area" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
+                    <h3 class="cinzel" style="font-size:0.8rem;">Nueva Misión</h3>
+                    <input type="text" id="mission-title" placeholder="Título...">
+                    <textarea id="mission-text" placeholder="Instrucciones..." style="height:80px;"></textarea>
+                    <button onclick="window.addMission()" class="btn-primary">CLAVAR EN TABLÓN</button>
                 </div>
             </div>
         </div>
@@ -76,7 +65,7 @@
             <div class="card">
                 <h2 class="cinzel">Gremio de Aventureros</h2>
                 <div id="character-list"></div>
-                <button onclick="window.showCharForm()" class="btn-primary" style="margin-top:25px;">+ REGISTRAR HÉROE</button>
+                <button onclick="window.showCharForm()" class="btn-primary" style="margin-top:20px;">+ REGISTRAR HÉROE</button>
             </div>
         </div>
     </div>
