@@ -18,7 +18,7 @@
         <!-- Se llena dinámicamente desde app.js -->
     </div>
 
-    <div id="role-indicator" style="position:fixed; top:60px; right:20px; z-index:1000; display:none;" class="status-badge">MODO: <span id="role-text">MASTER</span></div>
+    <div id="role-indicator" style="position:fixed; top:60px; right:20px; z-index:1000; display:none; background:rgba(0,0,0,0.8); border:1px solid var(--gold); padding:5px 10px; border-radius:10px; color:var(--gold); font-size:0.7rem; font-family:Cinzel;">MODO: <span id="role-text">MASTER</span></div>
 
     <div class="container">
         <div id="tab-home" class="tab-content">
@@ -28,7 +28,6 @@
                 
                 <div style="display:grid; grid-template-columns:1fr; gap:15px;">
                     <button onclick="window.exitToLobby()" class="btn-secondary" style="width:100%;">CAMBIAR DE CAMPAÑA</button>
-                    <button onclick="window.exitToLobby()" class="btn-secondary" style="width:100%; border-color:var(--danger); color:var(--danger);">CERRAR SESIÓN</button>
                 </div>
             </div>
         </div>
