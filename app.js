@@ -182,11 +182,20 @@ function joinCampaign() {
 }
 
 function showCampaignForm(id = null) {
+    if (!id && campaigns.length >= userTier.maxParties) {
+        openModal(`
+            <h2 class="cinzel">Límite Alcanzado</h2>
+            <p style="text-align:center;">Has llegado al máximo de ${userTier.maxParties} aventuras (${userTier.level}).</p>
+            ${userTier.level === 'free' ? `<button onclick="window.rollForLimit()" class="btn-primary">MEJORAR CON DADO D20</button>` : ''}
+            <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:10px; width:100%;">CANCELAR</button>
+        `);
+        return;
+    }
     const camp = id ? campaigns.find(c => c.id === id) : null;
     openModal(`
-        <h2 class="cinzel">${id ? 'Editar Aventura' : 'Nueva Aventura'}</h2>
-        <input type="text" id="form-camp-name" value="${camp ? camp.name : ''}" placeholder="Nombre de la campaña...">
-        <button onclick="window.saveCampaign(${id ? `'${id}'` : ''})" class="btn-primary">FORJAR DESTINO</button>
+        <h2 class="cinzel">${id ? 'Editar' : 'Nueva'} Campaña</h2>
+        <input type="text" id="form-camp-name" value="${camp ? camp.name : ''}" placeholder="Nombre de la aventura...">
+        <button onclick="window.saveCampaign('${id || ''}')" class="btn-primary">GUARDAR</button>
         <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CANCELAR</button>
     `);
 }
@@ -340,4 +349,558 @@ function openGlobalNoticeModal() {
         <textarea id="g-text" placeholder="Tu mensaje..." style="height:120px;"></textarea>
         <div style="margin-bottom:15px; display:flex; align-items:center; gap:10px;">
             <input type="checkbox" id="g-long" style="width:auto; margin:0;">
-            <label style="font-size:0.8rem;">RFVSQUNJacOTTiBFWFRFTkRJREEgKDMwIGTDrWFzKTwvbGFiZWw+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPHAgc3R5bGU9ImZvbnQtc2l6ZTowLjdyZW07IGNvbG9yOiM2NjY7Ij4qIFBvciBkZWZlY3RvIGR1cmFuIDcgZMOtYXMuIE1lbnNhamVzIHNvc3BlY2hvc29zIHNlcsOhbiBtb2RlcmFkb3MuPC9wPgogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LnBvc3RHbG9iYWxOb3RpY2UoKSIgY2xhc3M9ImJ0bi1wcmltYXJ5Ij5QVUJMSUNBUjwvYnV0dG9uPgogICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LmNsb3NlTW9kYWwoKSIgY2xhc3M9ImJ0bi1zZWNvbmRhcnkiIHN0eWxlPSJtYXJnaW4tdG9wOjE1cHg7IHdpZHRoOjEwMCU7Ij5WT0xWRVI8L2J1dHRvbj4KICAgIGApOwp9CgpmdW5jdGlvbiBwb3N0R2xvYmFsTm90aWNlKCkgewogICAgY29uc3QgdGl0bGUgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZy10aXRsZScpLnZhbHVlLnRyaW0oKTsKICAgIGNvbnN0IHRleHQgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZy10ZXh0JykudmFsdWUudHJpbSgpOwogICAgaWYgKCF0aXRsZSB8fCAhdGV4dCkgcmV0dXJuOwogICAgCiAgICBjb25zdCBuZWVkc1JldmlldyA9IGlzU3BhbSh0aXRsZSkgfHwgaXNTcGFtKHRleHQpOwogICAgY29uc3QgaXNMb25nID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2ctbG9uZycpLmNoZWNrZWQ7CiAgICBnbG9iYWxOb3RpY2VzLnVuc2hpZnQoeyAKICAgICAgICB0aXRsZSwgdGV4dCwgZGF0ZTogRGF0ZS5ub3coKSwgCiAgICAgICAgcGVuZGluZzogbmVlZHNSZXZpZXcsCiAgICAgICAgZXhwaXJ5OiBpc0xvbmcgPyAyNTkyMDAwMDAwIDogNjA0ODAwMDAwIAogICAgfSk7CiAgICAKICAgIGlmIChnbG9iYWxOb3RpY2VzLmxlbmd0aCA+IDIwKSBnbG9iYWxOb3RpY2VzLnBvcCgpOwogICAgc2F2ZUFsbCgpOyByZW5kZXJHbG9iYWxCb2FyZCgpOyBjbG9zZU1vZGFsKCk7Cn0KCmZ1bmN0aW9uIHJlbmRlckxvYmFsQm9hcmQoKSB7CiAgICBjb25zdCBjYW1wID0gY2FtcGFpZ25zLmZpbmQoYyA9PiBjLmlkID09PSBjdXJyZW50Q2FtcGFpZ25JZCk7CiAgICBpZiAoIWNhbXApIHJldHVybjsKICAgIGNvbnN0IHJlcyA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdsb2NhbC1ib2FyZCcpOwogICAgaWYgKCFyZXMpIHJldHVybjsKCiAgICByZXMuaW5uZXJIVE1MID0gKGNhbXAubm90aWNlcyB8fCBbXSkubWFwKChuLCBpKSA9PiB7CiAgICAgICAgY29uc3QgZGF5cyA9IChEYXRlLm5vdygpIC0gKG4uZGF0ZSB8fCAwKSkgLyAoMTAwMCAqIDYwICogNjAgKiAyNCk7CiAgICAgICAgY29uc3QgcmVhZENvdW50ID0gKG4ucmVhZEJ5IHx8IFtdKS5sZW5ndGg7CiAgICAgICAgY29uc3QgcGFydHlTaXplID0gKGNhbXAubGFydHkgfHwgW10pLmxlbmd0aCB8fCAxOwogICAgICAgIGNvbnN0IHJlYWRQZXJjZW50ID0gKHJlYWRDb3VudCAvIHBhcnR5U2l6ZSkgKiAxMDA7CiAgICAgICAgCiAgICAgICAgbGV0IHN1Z2dlc3Rpb24gPSAnJzsKICAgICAgICBpZiAoY3VycmVudFJv bGUgPT09ICdtYXN0ZXInKSB7CiAgICAgICAgICAgIGlmIChkYXlzID4gMzAgJiYgcmVhZFBlcmNlbnQgPj0gNzApIHsKICAgICAgICAgICAgICAgIHN1Z2dlc3Rpb24gPSBgPGRpdiBzdHlsZT0iYmFja2dyb3VuZDpyZ2JhKDE5NywxNjAsODksMC4xKTsgYm9yZGVyOjFweCBzb2xpZCB2YXIoLS1nb2xkKTsgcGFkZGluZzo4cHg7IGJvcmRlci1yYWRpdXM6NXB4OyBtYXJnaW4tdG9wOjEwcHg7IGZvbnQtc2l6ZTowLjc1cmVtOyBjb2xvcjp2YXIoLS1nb2xkKTsiPgogICAgICAgICAgICAgICAgICAgIDxpIGNsYXNzPSJmYS1zb2xpZCBmYS1icm9vbSI+PC9pPiA8Yj5TdWdnZXJlbmNpYTo8L2I+ICR7TWF0aC5mbG9vcihyZWFkUGVyY2VudCl9JSBsbyBsZXnDsyBoYWNlICszMCBkw61hcy4gwr9Cb3JyYXIgbWlzacOzbj8KICAgICAgICAgICAgICAgIDwvZGl2PmA7CiAgICAgICAgICAgIH0gZWxzZSBpZiAoZGF5cyA+IDE1ICYmIHJlYWRQZXJjZW50IDwgMzApIHsKICAgICAgICAgICAgICAgIHN1Z2dlc3Rpb24gPSBgPGRpdiBzdHlsZT0iYmFja2dyb3VuZDpyZ2JhKDI1NSwxMzYsMCwwLjEpOyBib3JkZXI6MXB4IHNvbGlkICNmZjg4MDA7IHBhZGRpbmc6OHB4OyBib3JkZXItcmFkaXVzOjVweDsgbWFyZ2luLXRvcDoxMHB4OyBmb250LXNpemU6MC43NXJlbTsgY29sb3I6I2ZmODgwMDsiPgogICAgICAgICAgICAgICAgICAgIDxpIGNsYXNzPSJmYS1zb2xpZCBmYS1jaXJjbGUtZXhjbGFtYXRpb24iPjwvaT4gPGI+U3VnZ2VyZW5jaWE6PC9iPiBTb2xvICR7TWF0aC5mbG9vcihyZWFkUGVyY2VudCl9JSBkZSBpbnRlcsOpcyBlbiAxNSBkw61hcy4KICAgICAgICAgICAgICAgIDwvZGl2PmA7CiAgICAgICAgICAgIH0KICAgICAgICB9CgogICAgICAgIHJldHVybiBgCiAgICAgICAgPGRpdiBjbGFzcz0iY2FyZCIgc3R5bGU9ImJhY2tncm91bmQ6IzBhMGEwYTsgcG9zaXRpb246cmVsYXRpdmU7IGJvcmRlci1sZWZ0OjRweCBzb2xpZCB2YXIoLS1kYW5nZXIpOyAke3N1Z2dlc3Rpb24gPyAnYm9yZGVyLWNvbG9yOnZhcigtLWdvbGQpOyM3JyA6ICcnfSI+CiAgICAgICAgICAgIDxkaXYgc3R5bGU9ImRpc3BsYXk6ZmxleDsganVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47IGFsaWduLWl0ZW1zOnN0YXJ0OyI+CiAgICAgICAgICAgICAgICA8ZGl2ID4KICAgICAgICAgICAgICAgICAgICA8aDMgc3R5bGU9Im1hcmdpbjowOyI+JHtuLnRpdGxlfTwvaDM+CiAgICAgICAgICAgICAgICAgICAgJHtzdWdnZXN0aW9ufQogICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAke2N1cnJlbnRSb2xlID09PSAnbWFzdGVyJyA/IGA8aCBjbGFzcz0iZmEtc29saWQgZmEtdHJhc2giIG9uY2xpY2s9IndpbmRvdy5kZWxldGVNaXNzaW9uKCR7aX0pIiBzdHlsZT0iY29sb3I6dmFyKC0tZGFuZ2VyKTsgY3Vyc29yOnBvaW50ZXI7Ij48L2k+YCA6ICcnfQogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPHAgc3R5bGU9ImZvbnQtc2l6ZToxLjFyZW07IHdoaXRlLXNwYWNlOnByZS13cmFwOyBtYXJnaW46MTVweCAwOyBjb2xvcjojY2NjOyI+JHtuLnRleHR9PC9wPgogICAgICAgICAgICA8ZGl2IHN0eWxlPSJib3JkZXItdG9wOjFweCBzb2xpZCAjMjIyOyBwYWRkaW5nLXRvcDoxMHB4OyBkaXNwbGF5OmZsZXg7IGp1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuOyBhbGlnbi1pdGVtczpjZW50ZXI7Ij4KICAgICAgICAgICAgICAgIDxkaXYgaWQ9InNlYWxzLSR7aX0iPgogICAgICAgICAgICAgICAgICAgIDkeyhuLnJlYWRCeSB8fCBbXSkubWFwKHIgPT4gYDxkaXYgY2xhc3M9IndheC1zZWFsIiB0aXRsZT0iJHtyfSI+PC9kaXY+YCkuam9pbihfKX0KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgJHtjdXJyZW50Um9sZSA9PT0gJ2F2ZW50dXJlcm8nID8gYDxidXR0b24gb25jbGljaz0id2luZG93Lm1hcmtBc1JlYWQoJHtpfSkiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0iZm9udC1zaXplOjAuN3JlbTsgcGFkZGluZzo1cHggMTBweDsiPk1BUkNBUiBDT01PIExFw41ETzwvYnV0dG9uPmAgOiAnJ30KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CiAgICBgOwogICAgfSkuam9pbihfKSB8fCAnPHAgc3R5bGU9ImNvbG9yOiM0NDQ7IHRleHQtYWxpZ246Y2VudGVyOyI+Tm8gaGF5IG1pc2lvbmVzIGFjdGl2YXMuPC9wPic7Cn0KCmZ1bmN0aW9uIG1hcmtBc1JlYWQoaWR4KSB7CiAgICBjb25zdCBjYW1wID0gY2FtcGFpZ25zLmZpbmQoYyA9PiBjLmlkID09PSBjdXJyZW50Q2FtcGFpZ25JZCk7CiAgICBpZiAoIWNhbXAgfHwgIWNhbXAubm90aWNlc1tpZHhdKSByZXR1cm47CiAgICBjb25zdCBuID0gY2FtcC5ub3RpY2VzW2lkeF07CiAgICBpZiAoIW4ucmVhZEJ5KSBuLnJlYWRCeSA9IFtdOwogICAgaWYgKCFuLnJlYWRCeS5pbmNsdWRlcygnSnVnYWRvcicpKSB7IAogICAgICAgIG4ucmVhZEJ5LnB1c2goJ0p1Z2Fkb3InKTsKICAgICAgICBzYXZlQWxsKCk7IHJlbmRlckxvYmJ5KCk7CiAgICB9Cn0KCmZ1bmN0aW9uIGFkZE1pc3Npb24oKSB7CiAgICBjb25zdCB0aXRsZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtaXNzaW9uLXRpdGxlJykudmFsdWUudHJpbSgpOwogICAgY29uc3QgdGV4dCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtaXNzaW9uLXRleHQnKS52YWx1ZS50cmltKCk7CiAgICBpZiAocCF0aXRsZSB8fCAhdGV4dCkgcmV0dXJuOwogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gIGMuaWQgPT09IGN1cnJlbnRDYW1wYWlnbklkKTsKICAgIGlmICghY2FtcC5ub3RpY2VzKSBjYW1wLm5vdGljZXMgPSBbXTsKICAgIGNhbXAubm90aWNlcy51bnNoaWZ0KHsgdGl0bGUsIHRleHQsIHJlYWRCeTogW10sIGRhdGU6IERhdGUubm93KCkgfSk7CiAgICBzYXZlQWxsKCk7IHJlbmRlckxvYmNhQm9hcmQoKTsKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtaXNzaW9uLXRpdGxlJykudmFsdWUgPSAnJzsKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtaXNzaW9uLXRleHQnKS52YWx1ZSA9ICcnOwp9CgpmdW5jdGlvbiBkZWxldGVNaXNzaW9uKGlkeCkgewogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gYy5pZCA9PT0gY3VycmVudENhbXBhaWduSWQpOwogICAgaWYgKCFjYW1wKSByZXR1cm47CiAgICBjYW1wLm5vdGljZXMuc3BsaWNlKGlkeCwgMSk7CiAgICBzYXZlQWxsKCk7IHJlbmRlckxvYmNhQm9hcmQoKTsKfQoKLy8gLS0tIE5QQyBUUkFERSAtLS0KZnVuY3Rpb24gb3Blbk5QQ1RyYWRlKGNoYXJJZCkgewogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gYy5pZCA9PT0gY3VycmVudENhbXBhaWduSWQpOwogICAgY29uc3QgY2hhciA9IChjYW1wLnBhcnR5IHx8IFtdKS5maW5kKHAgPT4gcC5pZCA9PSBjaGFySWQpOwogICAgaWYgKCFjaGFyKSByZXR1cm47CiAgICBhY3RpdmVUcmFkZSA9IHsKICAgICAgICBjaGFySWQ6IGNoYXJJZCwKICAgICAgICBnaXZlSXRlbXM6IFtdLAogICAgICAgIHJlY2VpdmVDb2luczogeyBjcDowLCBzcDowLCBlcDowLCBncDowLCBwcDowIH0sCiAgICAgICAgcmVjZWl2ZUl0ZW1zOiBbXSwKICAgICAgICBwMUNvbmZpcm1lZDogZmFsc2UsCiAgICAgICAgcDJDb25maXJtZWQ6IGZhbHNlCiAgICB9OwogICAgcmVuZGVyTlBDVHJhZGVVSShjaGFyKTsKfQoKZnVuY3Rpb24gcmVuZGVyTlBDVHJhZGVVSShjaGFyKSB7CiAgICBvcGVuTW9kYWwoYAogICAgICAgIDxoMiBjbGFzcz0iY2luemVsIiBzdHlsZT0idGV4dC1hbGlnbjpjZW50ZXI7Ij5UcmF0byBjb24gTlBDPC9oMj4KICAgICAgICA8ZGl2IHN0eWxlPSJkaXNwbGF5OmdyaWQ7IGpyaWQtdGVtcGxhdGUtY29sdW1uczogMWZyOyBnYXA6MjBweDsiPgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkIiBzdHlsZT0ibWFyZ2luOjA7IGJhY2tncm91bmQ6IzAwMDsiPgogICAgICAgICAgICAgICAgPGgzIHN0eWxlPSJmb250LXNpemU6MC45cmVtOyBjb2xvcjp3aGl0ZTsiPkVOVFJFR0EgREVMIEFWRU5UVVJFUk88L2gzPgogICAgICAgICAgICAgICAgPGRpdiBzdHlsZT0ibWF4LWhlaWdodDoxMjBweDsgb3ZlcmZsb3cteTphdXRvOyBmb250LXNpemU6MXJlbTsgbWFyZ2luLWJvdHRvbToxMHB4OyI+CiAgICAgICAgICAgICAgICAgICAgJHsoY2hhci5pbnZlbnRvcnkgfHwgW10pLm1hcCgoaXQsIGkpID0+IGAKICAgICAgICAgICAgICAgICAgICAgICAgPGRpdiBzdHlsZT0icGFkZGluZzo1cHggMDsiPjxsYWJlbD48aW5wdXQgdHlwZT0iY2hlY2tib3giIG9uY2hhbmdlPSJ3aW5kb3cudXBkYXRlTlBDR2l2ZSgke2l9KSI+ICR7aXQubmFtZX08L2xhYmVsPjwvZGl2PgogICAgICAgICAgICAgICAgICAgIGApLmpvaW4oJycpIHx8ICdNb2NoaWxhIHZhY8OtYScKICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0iY29pbi1ncmlkIj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjb2luLXVuaXQiPjxzcGFuIGNsYXNzPSJjb2luLWNwIj5DUDwvc3Bhbj48c3Bhbj4ke2NoYXIud2FsbGV0LmNwfTwvc3Bhbj48L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjb2luLXVuaXQiPjxzcGFuIGNsYXNzPSJjb2luLXNwIj5TUDwvc3Bhbj48c3Bhbj4ke2NoYXIud2FsbGV0LnNwfTwvc3Bhbj48L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjb2luLXVuaXQiPjxzcGFuIGNsYXNzPSJjb2luLWdwIj5HUDwvc3Bhbj48c3Bhbj4ke2NoYXIud2FsbGV0LmdwfTwvc3Bhbj48L2Rpdj4KICAgICAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJjb2luLXVuaXQiPjxzcGFuIGNsYXNzPSJjb2luLXBwIj5QUDwvc3Bhbj48c3Bhbj4ke2NoYXIud2FsbGV0LnBwfTwvc3Bhbj48L2Rpdj4KICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgCiAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNhcmQiIHN0eWxlPSJtYXJnaW46MDsgYmFja2dyb3VuZDojMDAwOyBib3JkZXI6MXB4IHNvbGlkIHZhcigtLWdvbGQpOyI+CiAgICAgICAgICAgICAgICA8aDMgc3R5bGU9ImZvbnQtc2l6ZTowLjlyZW07IGNvbG9yOnZhcigtLWdvbGQpOyI+UkVDT01QRU5TQSBERUwgTlBDPC9oMz4KICAgICAgICAgICAgICAgIDxkaXYgc3R5bGU9ImRpc3BsYXk6Z3JpZDsganJpZC10ZW1wbGF0ZS1jb2x1bW5zOiAxZnIgMWZyOyBnYXA6MTBweDsgbWFyZ2luLWJvdHRvbToxNXB4OyI+CiAgICAgICAgICAgICAgICAgICAgPGlucHV0IHR5cGU9Im51bWJlciIgcGxhY2Vob2xkZXI9IkNQIiBvbmlucHV0PSJhY3RpdmVUcmFkZS5yZWNlaXZlQ29pbnMuY3A9dGhpcy52YWx1ZSI+CiAgICAgICAgICAgICAgICAgICAgPGlucHV0IHR5cGU9Im51bWJlciIgcGxhY2Vob2xkZXI9IkdQIiBvbmlucHV0PSJhY3RpdmVUcmFkZS5yZWNlaXZlQ29pbnMuZ3A9dGhpcy52YWx1ZSI+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgIDxpbnB1dCB0eXBlPSJ0ZXh0IiBpZD0ibnBjLWl0ZW0tc2VhcmNoIiBwbGFjZWhvbGRlcj0iR2VuZXJhciDDrXRlbSBvIG1hdGVyaWFsLi4uIiBvbmtleXVwPSJ3aW5kb3cuc2VhcmNoTlBDSXRlbXMoKSI+CiAgICAgICAgICAgICAgICA8ZGl2IGlkPSJucGMtc2VhcmNoLXJlc3VsdHMiIHN0eWxlPSJmb250LXNpemU6MC45cmVtOyBjb2xvcjp2YXIoLS1nb2xkKTsgbWFyZ2luLWJvdHRvbToxMHB4OyI+PC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGlkPSJucGMtcGVuZGluZy1pdGVtcyIgc3R5bGU9ImZvbnQtc2l6ZTowLjlyZW07IGNvbG9yOiNhYWE7Ij48L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CgogICAgICAgIDxkaXYgc3R5bGU9Im1hcmdpbi10b3A6MjBweDsgZGlzcGxheTpmbGV4OyBnYXA6MTBweDsiPgogICAgICAgICAgICA8YnV0dG9uIGlkPSJidG4tbnBjLXAxIiBvbmNsaWNrPSJ3aW5kb3cuY29uZmlybU5QQ1BhcnQoMSkiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0iZmxleDoxOyI+U0VMTEFSIE5QQzwvYnV0dG9uPgogICAgICAgICAgICA8YnV0dG9uIGlkPSJidG4tbnBjLXAyIiBvbmNsaWNrPSJ3aW5kb3cuY29uZmlybU5QQ1BhcnQoMikiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0iZmxleDoxOyI+U0VMTEFSIEpVR0FET1I8L2J1dHRvbj4KICAgICAgICA8L2Rpdj4KICAgICAgICA8YnV0dG9uIGlkPSJidG4tbnBjLWV4ZWMiIG9uY2xpY2s9IndpbmRvdy5leGVjdXRlTlBDVHJhZGUoKSIgY2xhc3M9ImJ0bi1wcmltYXJ5IiBzdHlsZT0iZGlzcGxheTpub25lOyBtYXJnaW4tdG9wOjE1cHg7Ij5DRVJSQVIgVFJBVE88L2J1dHRvbj4KICAgIGApOwp9CgpmdW5jdGlvbiB1cGRhdGVOUENCaXZlKGlkeCkgewogICAgaWYgKCFhY3RpdmVUcmFkZSkgcmV0dXJuOwogICAgaWYgKGFjdGl2ZVRyYWRlLmdpdmVJdGVtcy5pbmNsdWRlcyhpZHgpKSBhY3RpdmVUcmFkZS5naXZlSXRlbXMgPSBhY3RpdmVUcmFkZS5naXZlSXRlbXMuZmlsdGVyKGkgPT4gaSAhPT0gaWR4KTsKICAgIGVsc2UgYWN0aXZlVHJhZGUuZ2l2ZUl0ZW1zLnB1c2goaWR4KTsKfQoKZnVuY3Rpb24gc2VhcmNoTlBDSXRlbXMoKSB7CiAgICBjb25zdCBxID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ25wYy1pdGVtLXNlYXJjaCcpLnZhbHVlLnRvTG93ZXJDYXNlKCk7CiAgICBjb25zdCByZXMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbnBjLXNlYXJjaC1yZXN1bHRzJyk7CiAgICBpZiAocS5sZW5ndGggPCAyKSByZXR1cm4gcmVzLmlubmVySFRNTCA9ICcnOwogICAgY29uc3QgbWF0Y2hlcyA9IFsuLi5zcmREYXRhLml0ZW1zLCAuLi5zcmREYXRhLndlYXBvbnNdLmZpbHRlcihpID0+IGkubmFtZS50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKHEpKS5zbGljZSgwLCAzKTsKICAgIHJlcy5pbm5lckhUTUwgPSBtYXRjaGVzLm1hcChtID0+IGA8ZGl2IG9uY2xpY2s9IndpbmRvdy5hZGROUENCXRlbSgnJHttLm5hbWV9JykiIHN0eWxlPSJjdXJzb3I6cG9pbnRlcjsgcGFkZGluZzo4cHg7IGJvcmRlci1ib3R0b206MXB4IHNvbGlkICMyMjI7Ij4rICR7bS5uYW1lfTwvZGl2PmApLmpvaW4oJycpICsgYDxkaXYgb25jbGljaz0id2luZG93LmFkGROUENCXRlbSgnJHtkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbnBjLWl0ZW0tc2VhcmNoJykudmFsdWV9JykiIHN0eWxlPSJjb2xvcjp3aGl0ZTsgY3Vyc29yOnBvaW50ZXI7IHBhZGRpbmc6OHB4OyI+KyBbQ3JlYXJdOiAke2RvY3VtZW50LmdldEVsZW1lbnRCeUlkKCducGMtaXRlbS1zZWFyY2gnKS52YWx1ZX08L2Rpdj5gOwp9CgpmdW5jdGlvbiBhZGROUENCXRlbShuYW1lKSB7CiAgICBpZiAoIWFjdGl2ZVRyYWRlKSByZXR1cm47CiAgICBhY3RpdmVUcmFkZS5yZWNlaXZlSXRlbXMucHVzaChuYW1lKTsKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCducGMtcGVuZGluZy1pdGVtcycpLmlubmVySFRNTCA9IGFjdGl2ZVRyYWRlLnJlY2VpdmVJdGVtcy5tYXAoaSA9PiBg4oCiICR7aX1gKS5qb2luKCc8YnI+Jyk7Cn0KCmZ1bmN0aW9uIGNvbmZpcm1OUENCYXJ0KG4pIHsKICAgIGlmICghYWN0aXZlVHJhZGUpIHJldHVybjsKICAgIGlmIChuID09PSAxKSB7IGFjdGl2ZVRyYWRlLnAxQ29uZmlybWVkID0gdHJ1ZTsgZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2J0bi1ucGMtcDEnKS5zdHlsZS5iYWNrZ3JvdW5kID0gJ3ZhcigtLXN1Y2Nlc3MpJzsgfQogICAgaWYgKG4gPT09IDIpIHsgYWN0aXZlVHJhZGUucDJDb25maXJtZWQgPSB0cnVlOyBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnYnRuLW5wYy1wMicpLnN0eWxlLmJhY2tncm91bmQgPSAndmFyKC0tc3VjY2VzcyknOyB9CiAgICBpZiAoYWN0aXZlVHJhZGUucDFDb25maXJtZWQgJiYgYWN0aXZlVHJhZGUucDJDb25maXJtZWQpIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdidG4tbnBjLWV4ZWMnKS5zdHlsZS5kaXNwbGF5ID0gJ2Jsb2NrJzsKfQoKZnVuY3Rpb24gZXhlY3V0ZU5QQ1RyYWRlKCkgewogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gYy5pZCA9PT0gY3VycmVudENhbXBhaWduSWQpOwogICAgY29uc3QgY2hhciA9IGNhbXAubmFydHkuZmluZChwID0+IHAuaWQgPT0gYWN0aXZlVHJhZGUuY2hhcklkKTsKICAgIAogICAgYWN0aXZlVHJhZGUuZ2l2ZUl0ZW1zLnNvcnQoKGEsYikgPT4gYi1hKS5mb3JFYWNoKGlkeCA9PiBjaGFyLmludmVudG9yeS5zcGxpY2UoaWR4LCAxKSk7CiAgICAKICAgIGNoYXIud2FsbGV0LmNwICs9IHBhcnNlSW50KGFjdGl2ZVRyYWRlLnJlY2VpdmVDb2lucy5jcCkgfHwgMDsKICAgIGNoYXIud2FsbGV0LnNwICs9IHBhcnNlSW50KGFjdGl2ZVRyYWRlLnJlY2VpdmVDb2lucy5zcCkgfHwgMDsKICAgIGNoYXIud2FsbGV0LmdwICs9IHBhcnNlSW50KGFjdGl2ZVRyYWRlLnJlY2VpdmVDb2lucy5ncCkgfHwgMDsKICAgIGNoYXIud2FsbGV0LnBwICs9IHBhcnNlSW50KGFjdGl2ZVRyYWRlLnJlY2VpdmVDb2lucy5wcCkgfHwgMDsKICAgIAogICAgYWN0aXZlVHJhZGUucmVjZWl2ZUl0ZW1zLmZvckVhY2gobmFtZSA9PiBjaGFyLmludmVudG9yeS5wdXNoKHsgbmFtZSwgd2VpZ2h0OiAxIH0pKTsKICAgIAogICAgc2F2ZUFsbCgpOyBjbG9zZU1vZGFsKCk7IHJlbmRlclBhcnR5KCk7IHJlbmRlck1hc3RlckV5ZSgpOwp9CgovLyAtLS0gQ09NQkFUICYgU1JEIC0tLQphc3luYyBmdW5jdGlvbiBsb2FkU1JERGF0YSgpIHsKICAgIHRyeSB7CiAgICAgICAgY29uc3QgcmVzcG9uc2UgPSBhd2FpdCBmZXRjaCgnZGF0YS9zcmRfZGF0YS5qc29uJyk7CiAgICAgICAgc3JkRGF0YSA9IGF3YWl0IHJlc3BvbnNlLmpzb24oKTsKICAgIH0gY2F0Y2ggKGUpIHsgY29uc29sZS53YXJuKCJTUkQgZmFpbCIpOyB9Cn0KCmZ1bmN0aW9uIHNlYXJjaE1vbnN0ZXJzKCkgewogICAgY29uc3QgcSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdtb25zdGVyLXNlYXJjaCcpLnZhbHVlLnRvTG93ZXJDYXNlKCk7CiAgICBjb25zdCByZXMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncyVhcmNoLXJlc3VsdHMnKTsKICAgIGlmICghcSkgcmV0dXJuIHJlcy5pbm5lckhUTUwgPSAnJzsKICAgIGNvbnN0IG1hdGNoZXMgPSBzcmREYXRhLm1vbnN0ZXJzLmZpbHRlcihtID0+IG0ubmFtZS50b0xvd2VyQ2FzZSgpLmluY2x1ZGVzKHEpKS5zbGljZSgwLCA1KTsKICAgIHJlcy5pbm5lckhUTUwgPSBtYXRjaGVzLm1hcChtID0+IGAKICAgICAgICA8ZGl2IG9uY2xpY2s9IndpbmRvdy5zaG93TW9uc3Rlck1vZGFsKCcke20ubmFtZX0nKSIgY2xhc3M9ImNhbXBhaWduLWl0ZW0iIHN0eWxlPSJjdXJzb3I6cG9pbnRlcjsiPgogICAgICAgICAgICA8c3BhbiBzdHlsZT0iY29sb3I6dmFyKC0tZ29sZCk7IGZvbnQtZmFtaWx5OkNpbnplbDsiPiR7bS5uYW1lfTwvc3Bhbj4KICAgICAgICAgICAgPHNwYW4gc3R5bGU9ImNvbG9yOiM2NjY7IGZvbnQtc2l6ZTowLjhyZW07Ij5DUiAke20uY3J9PC9zcGFuPgogICAgICAgIDwvZGl2PgogICAgYCkuam9pbihfKTsKfQoKZnVuY3Rpb24gc2hvd01vbnN0ZXJNb2RhbChuYW1lIHsKICAgIGNvbnN0IG0gPSBzcmREYXRhLm1vbnN0ZXJzLmZpbHRlcihtbCA9PiBtby5uYW1lID09PSBuYW1lKTsKICAgIGlmICghbSkgcmV0dXJuOwogICAgb3Blbk1vZGFsKGAKICAgICAgICA8aDIgY2xhc3M9ImNpbnplbCIgc3R5bGU9InRleHQtYWxpZ246Y2VudGVyOyBjb2xvcjp2YXIoLS1nb2xkKTsgZm9udC1zaXplOjJyZW07Ij4ke20ubmFtZX08L2gyPgogICAgICAgIDxwIHN0eWxlPSidGV4dC1hbGlnbjpjZW50ZXI7IGNvbG9yOiM4ODg7IG1hcmdpbi10b3A6LTEwcHg7Ij4ke20udHlwZX0gfCBDUjogJHttLmNyfTwvcD4KICAgICAgICA8ZGl2IHN0eWxlPSJkaXNwbGF5OmdyaWQ7IGdyaWQtdGVtcGxhdGUtY29sdW1uczoxZnIgMWZyOyBnYXA6MTVweDsgbWFyZ2luOjIwcHggMDsiPgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkIiBzdHlsZT0ibWFyZ2luOjA7IHRleHQtYWxpZ246Y2VudGVyOyBiYWNrZ3JvdW5kOiMwMDA7Ij5DQTxicj48YiBzdHlsZT0iZm9udC1zaXplOjEuNXJlbTsgY29sb3I6dmFyKC0tZ29sZCk7Ij4ke20uYWN9PC9iPjwvZGl2PgogICAgICAgICAgICA8ZGl2IGNsYXNzPSJjYXJkIiBzdHlsZT0ibWFyZ2luOjA7IHRleHQtYWxpZ246Y2VudGVyOyBiYWNrZ3JvdW5kOiMwMDA7Ij5WSURBPGJyPjxiIHN0eWxlPSJmb250LXNpemU6MS41cmVtOyBjb2xvcjp2YXIoLS1kYW5nZXIpOyI+JHttLmhwfTwvYj48L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgICAgICA8YnV0dG9uIG9uY2xpY2s9IndpbmRvdy5nb290TG9vdEZyb21Nb25zdGVyKCcke20ubmFtZX0nLCAnJHttLmNrfScsICcke20udHlwZX0nKSIgY2xhc3M9ImJ0bi1wcmltYXJ5Ij5ERVJST1RBRE8gKEJPVMONTik8L2J1dHRvbj4KICAgICAgICA8YnV0dG9uIG9uY2xpY2s9IndpbmRvdy5jbG9zZU1vZGFsKCkiIGNsYXNzPSJidG4tc2Vjb25kYXJ5IiBzdHlsZT0ibWFyZ2luLXRvcDoxNXB4OyB3aWR0aDoxMDAlOyI+Q0VSUkFSPC9idXR0b24+CiAgICBgKTsKfQoKZnVuY3Rpb24gZ29v dExvb3RGcm9tTW9uc3RlcihuYW1lLCBjciwgdHlwZSkgewogICAgY2xvc2VNb2RhbCgpOwogICAgZ2VuZXJhdGVMb290KGNyLCB0eXBlLCBuYW1lKTsKfQoKLy8gLS0tIEJPVMONTiAtLS0KZnVuY3Rpb24gZ2VuZXJhdGVMb290KGNyU3RyLCB0eXBlLCBtb25zdGVyTmFtZSA9ICdUZXNvcm8nKSB7CiAgICBjb25zdCBjciA9IGV2YWwoY3JTdHIpIHx8IDE7CiAgICBjb25zdCBpc05hdHVyZSA9IFsnYmVhc3QnLCAnbW9uc3Ryb3NpdHknLCAncGxhbnQnLCAnb296ZSddLmluY2x1ZGVzKHR5cGUudG9Mb3dlckNhc2UoKSk7CiAgICAKICAgIGxldCBjb2lucyA9IHsgY3A6MCwgc3A6MCwgZXA6MCwgZ3A6MCwgcHA6MCB9OwogICAgbGV0IGl0ZW1zID0gW107CgogICAgaWYgKGlzTmF0dXJlKSB7CiAgICAgICAgaXRlbXMucHVzaCh7IG5hbWU6IGBQaWVsIGRlICR7bW9uc3Rlck5hbWV9YCwgd2VpZ2h0OiA1LCB2YWw6IE1hdGguZmxvb3IoY3IgKiA1KSB9KTsKICAgICAgICBpdGVtcy5wdXNoKHsgbmFtZTogYEdsX8OhbmR1bGEvUmVzdG9zIGRlICR7bW9uc3Rlck5hbWV9YCwgd2VpZ2h0OiAxLCB2YWw6IE1hdGguZmxvb3IoY3IgKiAyKSB9KTsKICAgIH0gZWxzZSB7CiAgICAgICAgY29pbnMuY3AgPSBNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiAxMDAgKiBjcnIpOwogICAgICAgIGNvbnlucy5zcCA9IE1hdGguZmxvb3IoTWF0aC5yYW5kb20oKSAqIDUwICogY3IpOwogICAgICAgIGNvaW5zLmdwID0gTWF0aC5mbG9vcigoTWF0aC5yYW5kb20oKSAqIDIwICsgMTApICogY3IpOwogICAgICAgIGlmIChjciA+PSA1KSBjb2lucy5wcCA9IE1hdGguZmxvb3IoTWF0aC5yYW5kb20oKSAqIDUgKiBjcnIpOwogICAgfQoKICAgIGxhc3RHZW5lcmF0ZWRMb290ID0geyBjb2lucywgaXRlbXMgfTsKCiAgICBsZXQgY29pkhRtbCA9IE9iamVjdC5lbnRyaWVzKGNvaW5zKS5maWx0ZXIoKFtfLCB2XSkgPT4gdiA+IDApLm1hcCgoW2ssIHZdKSA9PiBgPHNwYW4gY2xhc3M9ImNvaW4tJHtrfSI+JHt2fSRre3N9PC9zcGFuPmApLmpvaW4oJyAnKTsKICAgIAogICAgb3Blbk1vZGFsKGAKICAgICAgICA8aDIgY2xhc3M9ImNpbnplbCI+JHtpc05hdHVyZSA/ICdSZXN0b3MgTmF0dXJhbGVzJyA6ICdDb2ZyZSBIYWxsYWRvJ308L2gyPgogICAgICAgIDxkaXYgc3R5bGU9InRleHQtYWxpZ246Y2VudGVyOyBtYXJnaW4tYm90dG9tOjIwcHg7Ij4KICAgICAgICAgICAgPGRpdiBzdHlsZT0iZm9udC1zaXplOjEuNHJlbTsgY29sb3I6dmFyKC0tZ29sZCk7Ij4ke2NvaW5IdG1sfTwvZGl2PgogICAgICAgICAgICAke2l0ZW1zLm1hcChpdCA9PiBgPGRpdiBzdHlsZT0iZm9udC1zaXplOjAuOXJlbTsiPuKAoiAke2l0Lm5hbWV9ICgke2l0LnZhbH1ncCk8L2Rpdj5gKS5qb2luKCcnKX0KICAgICAgICA8L2Rpdj4KICAgICAgICA8ZGl2IGlkPSJsb290LWFzc2lnbi1hcmVhIj4KICAgICAgICAgICAgPGxhYmVsIHN0eWxlPSJmb250LXNpemU6MC44cmVtOyI+UkVQQVJUSVIgRU5UUkU6PC9sYWJlbD4KICAgICAgICAgICAgPHNlbGVjdCBpZD0ibG9vdC10YXJnZXQiIHN0eWxlPSJtYXJnaW4tYm90dG9tOjE1cHg7Ij4KICAgICAgICAgICAgICAgIDxvcHRpb24gdmFsdWU9ImFsbCI+VG9kYSBsYSBQYXJ0eSAoRGl2aXNpw7NuKTwvb3B0aW9uPgogICAgICAgICAgICAgICAgJHtjYW1wLnBhcnR5Lm1hcChwID0+IGA8b3B0aW9uIHZhbHVlPSIke3AuaWR9Ij4ke3AubmFtZX08L29wdGlvbj5gKS5qb2luKCcnKX0KICAgICAgICAgICAgPC9zZWxlY3Q+CiAgICAgICAgICAgIDxidXR0b24gb25jbGljaz0id2luZG93LmV4ZWN1dGVMb290QXNzaWduKCkiIGNsYXNzPSJidG4tcHJpbWFyeSI+Q09ORklSTUFSIFJFU0FSVE88L2J1dHRvbj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgPC9kaXY+CiAgICBgKTsKfQoKZnVuY3Rpb24gZXhlY3V0ZUxvb3RBc3NpZ24oKSB7CiAgICBpZiAoIWxhc3RHZW5lcmF0ZWRMb290KSByZXR1cm47CiAgICBjb25zdCB0YXJnZXQgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbG9vdC10YXJnZXQnKS52YWx1ZTsKICAgIGNvbnN0IGNhbXAgPSBjYW1wYWlnbnMuZmluZChjID0+IGMuaWQgPT09IGN1cnJlbnRDYW1wYWlnbklkKTsKICAgIGNvbnN0IHsgY29pbnMsIGl0ZW1zIH0gPSBsYXN0R2VuZXJhdGVkTG9vdDsKCiAgICBpZiAodGFyZ2V0ID09PSAnYWxsJykgewogICAgICAgIGNvbnN0IHBDb3VudCA9IGNhbXAubmFydHkubGVuZ3RoIHx8IDE7CiAgICAgICAgY2FtcC5wYXJ0eS5mb3JFYWNoKHAgPT4gewogICAgICAgICAgICBPYmplY3Qua2V5cyhjb2lucykuZm9yRWFjaChrID0+IHsKICAgICAgICAgICAgICAgIGNvbnN0IHNoYXJlID0gTWF0aC5mbG9vcihjb2luc1trXSAvIHBDb3VudCk7CiAgICAgICAgICAgICAgICBpZiAoc2hhcmUgPiAwKSBwLndhbGxldFtrXSA9IChwLndhbGxldFtrXSB8fCAwKSArIHNoYXJlOwogICAgICAgICAgICB9KTsKICAgICAgICAgICAgaXRlbXMuZm9yRWFjaChpdCA9PiBwLmludmVudG9yeS5wdXNoKHsuLi5pdH0pKTsKICAgICAgICB9KTsKICAgIH0gZWxzZSB7CiAgICAgICAgY29uc3QgcCA9IGNhbXAubmFydHkuZmluZChoID0+IGguaWQgPT0gdGFyZ2V0KTsKICAgICAgICBPYmplY3Qua2V5cyhjb2lucykuZm9yRWFjaChrID0+IHsKICAgICAgICAgICAgcC53YWxsZXRba10gPSAocC53YWxsZXRba10gfHwgMCkgKyBjb2luc1trXTsKICAgICAgICB9KTsKICAgICAgICBpdGVtcy5mb3JFYWNoKGl0ID0+IHAuaW52ZW50b3J5LnB1c2goey4uLml0fSkpOwogICAgfQoKICAgIHNhdmVBbGwoKTsgcmVuZGVyUGFydHkoKTsgcmVuZGVyTWFzdGVyRXllKCk7IGNsb3NlTW9kYWwoKTsKfQoKLy8gLS0tIFJJVFVBTCAtLS0KbGV0IGN1cnJlbnRSaXR1YWxSb2xscyA9IFtdOwpsZXQgaXNSZWRlbXB0aW9uTW9kZSA9IGZhbHNlOwoKZnVuY3Rpb24gcm9sbEZvckxpbWl0KCkgewogICAgY29uc3RydWN0b3JSaXR1YWxSb2xscyA9IFtdOwogICAgaXNSZWRlbXB0aW9uTW9kZSA9IGZhbHNlOwoKICAgIG9wZW5EaWNlTW9kYWwoKTsKfQoKZnVuY3Rpb24gb3BlbkRpY2VNb2RhbCgpIHsKICAgIG9wZW5Nb2RhbChgCiAgICAgICAgPGRpdiBjbGFzcz0iZGljZS1yaXR1YWwtYXJlYSI+CiAgICAgICAgICAgIDxoMiBjbGFzcz0iY2luemVsIj5SaXR1YWwgZGUgQXNjZW5zbzwvaDI+CiAgICAgICAgICAgIDxkaXYgaWQ9InJpdHVhbC1tc2ctY29udGFpbmVyIiBjbGFzcz0icml0dWFsLW1zZy1hcmVhIiBvbmNsaWNrPSJ3aW5kb3cuY2hlY2tSZWRlbXB0aW9uQ2xpY2soKSI+CiAgICAgICAgICAgICAgICA8cCBpZD0icml0dWFsLW1zZyIgc3R5bGU9Im1hcmdpbjowOyI+VG9jYSBlbCBkYWRvIHBhcmEgdHUgMcKqIHRpcmFkYTwvcD4KICAgICAgICAgICAgPC9kaXY+CiAgICAgIC2PGRpdiBpZD0idmlzdWFsLWRpZSIgY2xhc3M9ImQyMC12aXN1YWwiIG9uY2xpY2s9IndpbmRvdy5leGVjdXRlUml0dWFsU3RlcCgpIiBzdHlsZT0iY29sb3I6dmFyKC0tZ29sZCk7Ij4KICAgICAgICAgICAgICAgIDxpIGNsYXNzPSJmYS1zb2xpZCBmYS1kaWNlLWQyMCI+PC9pPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGRpdiBjbGFzcz0icm9sbC1oaXN0b3J5IiBpZD0icml0dWFsLWhpc3RvcnkiPgogICAgICAgICAgICAgICAgPGRpdiBjbGFzcz0icm9sbC1kb3QiPj88L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9InJvbGwtZG90Ij4/PC9kaXY+CiAgICAgICAgICAgICAgICA8ZGl2IGNsYXNzPSJyb2xsLWRvdCI+PzwvZGl2PgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgIGApOwp9CgoKLy8gLS0tIFBFUlNPTkFKRVMgLS0tCmZ1bmN0aW9uIHJlbmRlclBhcnR5KCkgewogICAgY29uc3QgY2FtcCA9IGNhbXBhaWducy5maW5kKGMgPT4gYy5pZCA9PT0gY3VycmVudENhbXBhaWduSWQpOwogICAgaWYgKCFjYW1wKSByZXR1cm47CiAgICBjb25zdCByZXMgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnY2hhcmFjdGVyLWxpc3QnKTsKICAgIAogICAgcmVzLmlubmVySFRNTCA9IChjYW1wLnBhcnR5IHx8IFtdKS5tYXAoYyA9PiBgCiAgICAgICAgPGRpdiBjbGFzcz0iY2FyZCIgc3R5bGU9Im1hcmdpbi1ib3R0b206MTVweDsgcGFkZGluZzoxNXB4OyBib3JkZXItbGVmdDogM3B4IHNvbGlkIHZhcigtLWdvbGQpOyI+CiAgICAgICAgICAgIDxkaXYgb25jbGljaz0id2luZG93LnRvZ2dsZUludmVudG9yeSgnJHtjLmlkfScpIiBzdHlsZT0iZGlzcGxheTpmbGV4OyBqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjsgYWxpZ24taXRlbXM6c3RhcnQ7IGN1cnNvcjpwb2ludGVyOyI+CiAgICAgICAgICAgICAgICA8ZGl2PgogICAgICAgICAgICAgICAgICAgIDxoMyBzdHlsZT0ibWFyZ2luOjA7IGZvbnQtc2l6ZToxLjJyZW07Ij4ke2MubmFtZX08L2gzPgogICAgICAgICAgICAgICAgICAgIDxwIHN0eWxlPSJtYXJnaW46MDsgZm9udC1zaXplOjAuNzVyZW07IGNvbG9yOiM4ODg7Ij5BdmVudHVyZXJvIOKAoiBOaXZlbCAxPC9wPgogICAgICAgICAgICAgICAgICAgIDxkaXYgY2xhc3M9ImNvaW4tZ3JpZCIgc3R5bGU9IndpZHRoOjIwMHB4OyBtYXJnaW4tdG9wOjEwcHg7Ij4KICAgICAgICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3M9ImNvaW4tY3AiPiR7Yy53YWxsZXQuY3B9Yzwvc3Bhbj4KICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgIGDsCn0KCmRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ0RPTUNvbnRlbnRMb2FkZWQnLCBpbml0KTs=
+            <label style="font-size:0.8rem;">DURACIÓN EXTENDIDA (30 días)</label>
+        </div>
+        <p style="font-size:0.7rem; color:#666;">* Por defecto duran 7 días. Mensajes sospechosos serán moderados.</p>
+        <button onclick="window.postGlobalNotice()" class="btn-primary">PUBLICAR</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">VOLVER</button>
+    `);
+}
+
+function postGlobalNotice() {
+    const title = document.getElementById('g-title').value.trim();
+    const text = document.getElementById('g-text').value.trim();
+    if (!title || !text) return;
+    
+    const needsReview = isSpam(title) || isSpam(text);
+    const isLong = document.getElementById('g-long').checked;
+    globalNotices.unshift({ 
+        title, text, date: Date.now(), 
+        pending: needsReview,
+        expiry: isLong ? 2592000000 : 604800000 
+    });
+    
+    if (globalNotices.length > 20) globalNotices.pop();
+    saveAll(); renderGlobalBoard(); closeModal();
+}
+
+function renderLocalBoard() {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp) return;
+    const res = document.getElementById('local-board');
+    if (!res) return;
+
+    res.innerHTML = (camp.notices || []).map((n, i) => {
+        const days = (Date.now() - (n.date || 0)) / (1000 * 60 * 60 * 24);
+        const readCount = (n.readBy || []).length;
+        const partySize = (camp.party || []).length || 1;
+        const readPercent = (readCount / partySize) * 100;
+        
+        let suggestion = '';
+        if (currentRole === 'master') {
+            if (days > 30 && readPercent >= 70) {
+                suggestion = `<div style="background:rgba(197,160,89,0.1); border:1px solid var(--gold); padding:8px; border-radius:5px; margin-top:10px; font-size:0.75rem; color:var(--gold);">
+                    <i class="fa-solid fa-broom"></i> <b>Sugerencia:</b> ${Math.floor(readPercent)}% lo leyó hace +30 días. ¿Borrar misión?
+                </div>`;
+            } else if (days > 15 && readPercent < 30) {
+                suggestion = `<div style="background:rgba(255,136,0,0.1); border:1px solid #ff8800; padding:8px; border-radius:5px; margin-top:10px; font-size:0.75rem; color:#ff8800;">
+                    <i class="fa-solid fa-circle-exclamation"></i> <b>Sugerencia:</b> Solo ${Math.floor(readPercent)}% de interés en 15 días.
+                </div>`;
+            }
+        }
+
+        return `
+        <div class="card" style="background:#0a0a0a; position:relative; border-left:4px solid var(--danger); ${suggestion ? 'border-color:var(--gold);' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div>
+                    <h3 style="margin:0;">${n.title}</h3>
+                    ${suggestion}
+                </div>
+                ${currentRole === 'master' ? `<i class="fa-solid fa-trash" onclick="window.deleteMission(${i})" style="color:var(--danger); cursor:pointer;"></i>` : ''}
+            </div>
+            <p style="font-size:1.1rem; white-space:pre-wrap; margin:15px 0; color:#ccc;">${n.text}</p>
+            <div style="border-top:1px solid #222; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div id="seals-${i}">
+                    ${(n.readBy || []).map(r => `<div class="wax-seal" title="${r}"></div>`).join('')}
+                </div>
+                ${currentRole === 'adventurer' ? `<button onclick="window.markAsRead(${i})" class="btn-secondary" style="font-size:0.7rem; padding:5px 10px;">MARCAR COMO LEÍDO</button>` : ''}
+            </div>
+        </div>
+    `;
+    }).join('') || '<p style="color:#444; text-align:center;">No hay misiones activas.</p>';
+}
+
+function markAsRead(idx) {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp || !camp.notices[idx]) return;
+    const n = camp.notices[idx];
+    if (!n.readBy) n.readBy = [];
+    if (!n.readBy.includes('Jugador')) { 
+        n.readBy.push('Jugador');
+        saveAll(); renderLocalBoard();
+    }
+}
+
+function addMission() {
+    const title = document.getElementById('mission-title').value.trim();
+    const text = document.getElementById('mission-text').value.trim();
+    if (!title || !text) return;
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp.notices) camp.notices = [];
+    camp.notices.unshift({ title, text, readBy: [], date: Date.now() });
+    saveAll(); renderLocalBoard();
+    document.getElementById('mission-title').value = '';
+    document.getElementById('mission-text').value = '';
+}
+
+function deleteMission(idx) {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp) return;
+    camp.notices.splice(idx, 1);
+    saveAll(); renderLocalBoard();
+}
+
+// --- NPC TRADE ---
+function openNPCTrade(charId) {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    const char = (camp.party || []).find(p => p.id == charId);
+    if (!char) return;
+    activeTrade = {
+        charId: charId,
+        giveItems: [],
+        receiveCoins: { cp:0, sp:0, ep:0, gp:0, pp:0 },
+        receiveItems: [],
+        p1Confirmed: false,
+        p2Confirmed: false
+    };
+    renderNPCTradeUI(char);
+}
+
+function renderNPCTradeUI(char) {
+    openModal(`
+        <h2 class="cinzel" style="text-align:center;">Trato con NPC</h2>
+        <div style="display:grid; grid-template-columns: 1fr; gap:20px;">
+            <div class="card" style="margin:0; background:#000;">
+                <h3 style="font-size:0.9rem; color:white;">ENTREGA DEL AVENTURERO</h3>
+                <div style="max-height:120px; overflow-y:auto; font-size:1rem; margin-bottom:10px;">
+                    ${(char.inventory || []).map((it, i) => `
+                        <div style="padding:5px 0;"><label><input type="checkbox" onchange="window.updateNPCGive(${i})"> ${it.name}</label></div>
+                    `).join('') || 'Mochila vacía'}
+                </div>
+                <div class="coin-grid">
+                    <div class="coin-unit"><span class="coin-cp">CP</span><span>${char.wallet.cp}</span></div>
+                    <div class="coin-unit"><span class="coin-sp">SP</span><span>${char.wallet.sp}</span></div>
+                    <div class="coin-unit"><span class="coin-gp">GP</span><span>${char.wallet.gp}</span></div>
+                    <div class="coin-unit"><span class="coin-pp">PP</span><span>${char.wallet.pp}</span></div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin:0; background:#000; border:1px solid var(--gold);">
+                <h3 style="font-size:0.9rem; color:var(--gold);">RECOMPENSA DEL NPC</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                    <input type="number" placeholder="CP" oninput="activeTrade.receiveCoins.cp=this.value">
+                    <input type="number" placeholder="GP" oninput="activeTrade.receiveCoins.gp=this.value">
+                </div>
+                <input type="text" id="npc-item-search" placeholder="Generar ítem o material..." onkeyup="window.searchNPCItems()">
+                <div id="npc-search-results" style="font-size:0.9rem; color:var(--gold); margin-bottom:10px;"></div>
+                <div id="npc-pending-items" style="font-size:0.9rem; color:#aaa;"></div>
+            </div>
+        </div>
+
+        <div style="margin-top:20px; display:flex; gap:10px;">
+            <button id="btn-npc-p1" onclick="window.confirmNPCPart(1)" class="btn-secondary" style="flex:1;">SELLAR NPC</button>
+            <button id="btn-npc-p2" onclick="window.confirmNPCPart(2)" class="btn-secondary" style="flex:1;">SELLAR JUGADOR</button>
+        </div>
+        <button id="btn-npc-exec" onclick="window.executeNPCTrade()" class="btn-primary" style="display:none; margin-top:15px;">CERRAR TRATO</button>
+    `);
+}
+
+function updateNPCGive(idx) {
+    if (!activeTrade) return;
+    if (activeTrade.giveItems.includes(idx)) activeTrade.giveItems = activeTrade.giveItems.filter(i => i !== idx);
+    else activeTrade.giveItems.push(idx);
+}
+
+function searchNPCItems() {
+    const q = document.getElementById('npc-item-search').value.toLowerCase();
+    const res = document.getElementById('npc-search-results');
+    if (q.length < 2) return res.innerHTML = '';
+    const matches = [...srdData.items, ...srdData.weapons].filter(i => i.name.toLowerCase().includes(q)).slice(0, 3);
+    res.innerHTML = matches.map(m => `<div onclick="window.addNPCItem('${m.name}')" style="cursor:pointer; padding:8px; border-bottom:1px solid #222;">+ ${m.name}</div>`).join('') + `<div onclick="window.addNPCItem('${document.getElementById('npc-item-search').value}')" style="color:white; cursor:pointer; padding:8px;">+ [Crear]: ${document.getElementById('npc-item-search').value}</div>`;
+}
+
+function addNPCItem(name) {
+    if (!activeTrade) return;
+    activeTrade.receiveItems.push(name);
+    document.getElementById('npc-pending-items').innerHTML = activeTrade.receiveItems.map(i => `• ${i}`).join('<br>');
+}
+
+function confirmNPCPart(n) {
+    if (!activeTrade) return;
+    if (n === 1) { activeTrade.p1Confirmed = true; document.getElementById('btn-npc-p1').style.background = 'var(--success)'; }
+    if (n === 2) { activeTrade.p2Confirmed = true; document.getElementById('btn-npc-p2').style.background = 'var(--success)'; }
+    if (activeTrade.p1Confirmed && activeTrade.p2Confirmed) document.getElementById('btn-npc-exec').style.display = 'block';
+}
+
+function executeNPCTrade() {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    const char = camp.party.find(p => p.id == activeTrade.charId);
+    
+    activeTrade.giveItems.sort((a,b) => b-a).forEach(idx => char.inventory.splice(idx, 1));
+    
+    char.wallet.cp += parseInt(activeTrade.receiveCoins.cp) || 0;
+    char.wallet.sp += parseInt(activeTrade.receiveCoins.sp) || 0;
+    char.wallet.gp += parseInt(activeTrade.receiveCoins.gp) || 0;
+    char.wallet.pp += parseInt(activeTrade.receiveCoins.pp) || 0;
+    
+    activeTrade.receiveItems.forEach(name => char.inventory.push({ name, weight: 1 }));
+    
+    saveAll(); closeModal(); renderParty(); renderMasterEye();
+}
+
+// --- COMBAT & SRD ---
+async function loadSRDData() {
+    try {
+        const response = await fetch('data/srd_data.json');
+        srdData = await response.json();
+    } catch (e) { console.warn("SRD fail"); }
+}
+
+function searchMonsters() {
+    const q = document.getElementById('monster-search').value.toLowerCase();
+    const res = document.getElementById('search-results');
+    if (!q) return res.innerHTML = '';
+    const matches = srdData.monsters.filter(m => m.name.toLowerCase().includes(q)).slice(0, 5);
+    res.innerHTML = matches.map(m => `
+        <div onclick="window.showMonsterModal('${m.name}')" class="campaign-item" style="cursor:pointer;">
+            <span style="color:var(--gold); font-family:Cinzel;">${m.name}</span>
+            <span style="color:#666; font-size:0.8rem;">CR ${m.cr}</span>
+        </div>
+    `).join('');
+}
+
+function showMonsterModal(name) {
+    const m = srdData.monsters.find(mo => mo.name === name);
+    if (!m) return;
+    openModal(`
+        <h2 class="cinzel" style="text-align:center; color:var(--gold); font-size:2rem;">${m.name}</h2>
+        <p style="text-align:center; color:#888; margin-top:-10px;">${m.type} | CR: ${m.cr}</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:20px 0;">
+            <div class="card" style="margin:0; text-align:center; background:#000;">CA<br><b style="font-size:1.5rem; color:var(--gold);">${m.ac}</b></div>
+            <div class="card" style="margin:0; text-align:center; background:#000;">VIDA<br><b style="font-size:1.5rem; color:var(--danger);">${m.hp}</b></div>
+        </div>
+        <button onclick="window.goToLootFromMonster('${m.name}', '${m.cr}', '${m.type}')" class="btn-primary">DERROTADO (BOTÍN)</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CERRAR</button>
+    `);
+}
+
+function goToLootFromMonster(name, cr, type) {
+    closeModal();
+    generateLoot(cr, type, name);
+}
+
+function generateEncounter(difficulty) {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp || !camp.party || camp.party.length === 0) {
+        openModal('<h2 class="cinzel">Sin Héroes</h2><p>Registra aventureros en el Gremio para calcular el desafío.</p>');
+        return;
+    }
+    
+    const avgLevel = camp.party.reduce((sum, p) => sum + (p.level || 1), 0) / camp.party.length;
+    let targetCR = avgLevel;
+    if (difficulty === 'hard') targetCR *= 1.5;
+    
+    const matches = srdData.monsters.filter(m => eval(m.cr) <= targetCR);
+    if (matches.length === 0) return;
+    
+    const monster = matches[Math.floor(Math.random() * matches.length)];
+    showMonsterModal(monster.name);
+}
+
+// --- BOTÍN ---
+function generateLoot(crStr, type, monsterName) {
+    const cr = eval(crStr) || 1;
+    const isNature = ['beast', 'monstrosity', 'plant', 'ooze'].includes(type.toLowerCase());
+    
+    let coins = { cp:0, sp:0, ep:0, gp:0, pp:0 };
+    let items = [];
+    let isFake = Math.random() < 0.12;
+
+    if (isNature) {
+        items.push({ name: `Piel de ${monsterName}`, val: Math.floor(cr * 5) });
+        items.push({ name: `Restos de ${monsterName}`, val: Math.floor(cr * 2) });
+    } else {
+        coins.cp = Math.floor(Math.random() * 100 * cr);
+        coins.sp = Math.floor(Math.random() * 50 * cr);
+        coins.gp = Math.floor((Math.random() * 20 + 10) * cr);
+        if (cr > 5) coins.pp = Math.floor(Math.random() * 5 * cr);
+    }
+
+    lastGeneratedLoot = { coins, items, isFake };
+
+    let coinHtml = Object.entries(coins)
+        .filter(([_, val]) => val > 0)
+        .map(([key, val]) => `<span class="coin-${key}">${val}${key}</span>`)
+        .join(' ');
+
+    openModal(`
+        <h2 class="cinzel">${isNature ? 'Restos Naturales' : 'Botín Hallado'} ${isFake && currentRole === 'master' ? '⚠️' : ''}</h2>
+        <div style="text-align:center; font-size:1.5rem; margin:20px 0; color:var(--gold);">
+            ${isNature ? '' : coinHtml}
+            ${items.map(it => `<div>• ${it.name} (${it.val}gp)</div>`).join('')}
+        </div>
+        <div id="loot-assign-area">
+            <label style="font-size:0.8rem;">ENTREGAR A:</label>
+            <select id="loot-target" style="margin-bottom:15px;">
+                <option value="all">Dividir entre todos</option>
+                ${(campaigns.find(c => c.id === currentCampaignId).party || []).map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            </select>
+            <button onclick="window.executeLootAssign()" class="btn-primary">REPARTIR BOTÍN</button>
+        </div>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">DESCARTAR</button>
+    `);
+}
+
+function executeLootAssign() {
+    if (!lastGeneratedLoot) return;
+    const target = document.getElementById('loot-target').value;
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    const { coins, items, isFake } = lastGeneratedLoot;
+
+    if (target === 'all') {
+        const pCount = camp.party.length || 1;
+        camp.party.forEach(p => {
+            Object.keys(coins).forEach(k => {
+                if (k === 'gp' && isFake) p.wallet.gp_fake = (p.wallet.gp_fake || 0) + Math.floor(coins[k] / pCount);
+                else p.wallet[k] = (p.wallet[k] || 0) + Math.floor(coins[k] / pCount);
+            });
+            items.forEach(it => p.inventory.push({ name: it.name, weight: 1 }));
+        });
+    } else {
+        const p = camp.party.find(h => h.id == target);
+        if (p) {
+            Object.keys(coins).forEach(k => {
+                if (k === 'gp' && isFake) p.wallet.gp_fake = (p.wallet.gp_fake || 0) + coins[k];
+                else p.wallet[k] = (p.wallet[k] || 0) + coins[k];
+            });
+            items.forEach(it => p.inventory.push({ name: it.name, weight: 1 }));
+        }
+    }
+    
+    lastGeneratedLoot = null;
+    saveAll(); closeModal(); renderParty(); renderMasterEye();
+}
+
+// --- PARTY ---
+function renderParty() {
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp) return;
+    const res = document.getElementById('character-list');
+    if (!res) return;
+    
+    (camp.party || []).forEach(p => {
+        if (!p.wallet) p.wallet = { cp:0, sp:0, ep:0, gp:0, pp:0, gp_fake:0 };
+        ['cp','sp','ep','gp','pp','gp_fake'].forEach(k => { if(p.wallet[k] === undefined) p.wallet[k]=0; });
+    });
+
+    res.innerHTML = (camp.party || []).map(c => `
+        <div class="card" style="margin-bottom:15px; padding:15px;">
+            <div onclick="window.toggleInventory(${c.id})" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                <div>
+                    <h3 style="margin:0; font-size:1.2rem;">${c.name}</h3>
+                    <div class="coin-grid" style="width:220px; font-size:0.7rem;">
+                        <span class="coin-cp">${c.wallet.cp}c</span>
+                        <span class="coin-sp">${c.wallet.sp}s</span>
+                        <span class="coin-gp">${c.wallet.gp + (c.wallet.gp_fake||0)}g</span>
+                        <span class="coin-pp">${c.wallet.pp}p</span>
+                    </div>
+                </div>
+                ${currentRole === 'master' ? `<button onclick="event.stopPropagation(); window.openNPCTrade(${c.id})" class="btn-secondary" style="font-size:0.7rem;">TRATO NPC</button>` : ''}
+            </div>
+            <div id="inv-${c.id}" style="display:none; width:100%; margin-top:15px; background:#000; padding:15px; border-radius:8px; font-size:0.9rem; border:1px solid #222;">
+                <b style="color:var(--gold);">INVENTARIO:</b><br>
+                ${(c.inventory || []).map(it => `• ${it.name}`).join('<br>') || 'Vacío'}
+                ${(currentRole === 'master' && c.wallet.gp_fake > 0) ? `<p style="color:#ff4444; margin-top:10px; border-top:1px solid #444; padding-top:5px;">⚠️ ORO FALSO: ${c.wallet.gp_fake} gp</p>` : ''}
+            </div>
+        </div>
+    `).join('') || '<p style="color:#444; text-align:center;">No hay héroes registrados.</p>';
+}
+
+function showCharForm() {
+    openModal(`
+        <h2 class="cinzel">Nuevo Héroe</h2>
+        <input type="text" id="form-char-name" placeholder="Nombre del aventurero...">
+        <button onclick="window.createCharacter()" class="btn-primary">CREAR PERSONAJE</button>
+        <button onclick="window.closeModal()" class="btn-secondary" style="margin-top:15px; width:100%;">CANCELAR</button>
+    `);
+}
+
+function createCharacter() {
+    const name = document.getElementById('form-char-name').value.trim();
+    if (!name) return;
+    const camp = campaigns.find(c => c.id === currentCampaignId);
+    if (!camp.party) camp.party = [];
+    camp.party.push({
+        id: Date.now(), name, level: 1, inventory: [],
+        wallet: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0, gp_fake: 0 }
+    });
+    saveAll(); renderParty(); renderMasterEye(); closeModal();
+}
+
+function toggleInventory(id) {
+    const d = document.getElementById('inv-' + id);
+    if (d) d.style.display = (d.style.display === 'none' ? 'block' : 'none');
+}
+
+// --- RITUAL ---
+let currentRitualRolls = [];
+let isRedemptionMode = false;
+
+function rollForLimit() {
+    currentRitualRolls = [];
+    isRedemptionMode = false;
+    openDiceModal();
+}
+
+function openDiceModal() {
+    openModal(`
+        <div class="dice-ritual-area">
+            <h2 class="cinzel">Ritual de Ascenso</h2>
+            <div id="ritual-msg-container" class="ritual-msg-area" onclick="window.checkRedemptionClick()">
+                <p id="ritual-msg" style="margin:0;">Toca el dado para tu 1ª tirada</p>
+            </div>
+            <div id="visual-die" class="d20-visual" onclick="window.executeRitualStep()" style="color:var(--gold);">
+                <i class="fa-solid fa-dice-d20"></i>
+            </div>
+            <div class="roll-history" id="ritual-history">
+                <div class="roll-dot">?</div>
+                <div class="roll-dot">?</div>
+                <div class="roll-dot">?</div>
+            </div>
+        </div>
+    `);
+}
+
+function checkRedemptionClick() {
+    if (isRedemptionMode) {
+        isRedemptionMode = false;
+        const msg = document.getElementById('ritual-msg');
+        const container = document.getElementById('ritual-msg-container');
+        const die = document.getElementById('visual-die');
+        
+        container.classList.remove('waiting');
+        msg.innerHTML = "Los dioses aceptan tu tributo...<br><b style='color:var(--gold);'>¡LANZA EL TIRO DE GRACIA!</b>";
+        die.onclick = window.executeRitualStep;
+        die.style.boxShadow = "0 0 30px var(--gold)";
+    }
+}
+
+function executeRitualStep() {
+    const die = document.getElementById('visual-die');
+    const msg = document.getElementById('ritual-msg');
+    
+    die.classList.add('rolling');
+    die.onclick = null;
+    msg.innerText = "¡Lanzando!";
+
+    setTimeout(() => {
+        die.classList.remove('rolling');
+        let roll;
+        
+        if (currentRitualRolls.length === 3) {
+            roll = 15; 
+        } else {
+            roll = Math.floor(Math.random() * 20) + 1;
+        }
+        
+        currentRitualRolls.push(roll);
+        die.innerHTML = `<span style="font-family:Cinzel;">${roll}</span>`;
+        
+        const dots = document.getElementById('ritual-history').children;
+        if (currentRitualRolls.length <= 3) {
+            dots[currentRitualRolls.length - 1].innerText = roll;
+            dots[currentRitualRolls.length - 1].classList.add('active');
+        }
+
+        let maxSoFar = Math.max(...currentRitualRolls);
+
+        if (currentRitualRolls.length < 3) {
+            msg.innerText = `Resultado: ${roll}. ¡Toca para la siguiente!`;
+            setTimeout(() => {
+                die.innerHTML = '<i class="fa-solid fa-dice-d20"></i>';
+                die.onclick = window.executeRitualStep;
+            }, 800);
+        } else if (currentRitualRolls.length === 3 && maxSoFar < 15) {
+            isRedemptionMode = true;
+            const container = document.getElementById('ritual-msg-container');
+            container.classList.add('waiting');
+            msg.innerHTML = `<b style="color:#ff4444;">SUERTE ADVERSA...</b><br><span style="font-size:0.8rem;">[Toca este mensaje para pedir favor divino]</span>`;
+        } else {
+            finalizeRitual(maxSoFar);
+        }
+    }, 1000);
+}
+
+function finalizeRitual(finalLimit) {
+    userTier.level = 'master';
+    userTier.maxParties = finalLimit;
+    saveTier();
+    renderLobby();
+
+    const msg = document.getElementById('ritual-msg');
+    const die = document.getElementById('visual-die');
+    
+    die.style.color = "var(--gold)";
+    die.style.transform = "scale(1.2)";
+    msg.innerHTML = `<b style="color:var(--gold);">¡ASCENSO COMPLETADO!</b><br>Límite: <b>${finalLimit} aventuras</b>.`;
+    
+    setTimeout(() => {
+        openModal(`
+            <h2 class="cinzel">NUEVO RANGO: MASTER</h2>
+            <p style="text-align:center;">Has desbloqueado todo el poder del Grimorio.</p>
+            <div style="font-size:4.5rem; text-align:center; color:var(--gold); margin:20px 0; display:flex; flex-direction:column; align-items:center; gap:10px;">
+                <i class="fa-solid fa-dice-d20"></i>
+                <span style="font-family:Cinzel; font-size:2.5rem; margin-top:-10px;">${finalLimit}</span>
+            </div>
+            <button onclick="window.closeModal()" class="btn-primary">RECLAMAR PODER</button>
+        `);
+    }, 2000);
+}
+
+function reclaimMaster(id) {
+    let camp = campaigns.find(c => c.id === id);
+    if (camp) {
+        camp.isJoined = false;
+        saveAll();
+        location.reload();
+    }
+}
+
+// --- INIT ---
+document.addEventListener('DOMContentLoaded', init);
+
+// Bindings globales
+window.showTab = showTab;
+window.selectCampaign = selectCampaign;
+window.exitToLobby = exitToLobby;
+window.showCampaignForm = showCampaignForm;
+window.saveCampaign = saveCampaign;
+window.confirmDeleteCampaign = confirmDeleteCampaign;
+window.deleteCampaign = deleteCampaign;
+window.closeModal = closeModal;
+window.openGlobalNoticeModal = openGlobalNoticeModal;
+window.postGlobalNotice = postGlobalNotice;
+window.addMission = addMission;
+window.deleteMission = deleteMission;
+window.searchMonsters = searchMonsters;
+window.showMonsterModal = showMonsterModal;
+window.goToLootFromMonster = goToLootFromMonster;
+window.markAsRead = markAsRead;
+window.copyInviteCode = copyInviteCode;
+window.showJoinForm = showJoinForm;
+window.joinCampaign = joinCampaign;
+window.reclaimMaster = reclaimMaster;
+window.rollForLimit = rollForLimit;
+window.executeRitualStep = executeRitualStep;
+window.checkRedemptionClick = checkRedemptionClick;
+window.showCharForm = showCharForm;
+window.createCharacter = createCharacter;
+window.toggleInventory = toggleInventory;
+window.generateEncounter = generateEncounter;
+window.executeLootAssign = executeLootAssign;
+window.openNPCTrade = openNPCTrade;
+window.updateNPCGive = updateNPCGive;
+window.searchNPCItems = searchNPCItems;
+window.addNPCItem = addNPCItem;
+window.confirmNPCPart = confirmNPCPart;
+window.executeNPCTrade = executeNPCTrade;
